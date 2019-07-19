@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Bob
+Exec=bob
+Comment=Bob is a square.
+Icon=bob
+Terminal=false
+Categories=Game;ArcadeGame;
