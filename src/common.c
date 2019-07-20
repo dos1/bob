@@ -62,8 +62,8 @@ static int isinside(vrPolygonShape* shape, vrVec2 v) {
 	float testy = v.y;
 	int i, j, c = 0;
 	for (i = 0, j = shape->num_vertices - 1; i < shape->num_vertices; j = i++) {
-		if (((shape->vertices[i].y > testy) != (shape->vertices[j].y > testy)) &&
-			(testx < (shape->vertices[j].x - shape->vertices[i].x) * (testy - shape->vertices[i].y) / (shape->vertices[j].y - shape->vertices[i].y) + shape->vertices[i].x))
+		if (((shape->vertices[i].y + 1 > testy) != (shape->vertices[j].y + 1 > testy)) &&
+			(testx < 1 + (shape->vertices[j].x - shape->vertices[i].x) * (testy - shape->vertices[i].y) / (shape->vertices[j].y - shape->vertices[i].y) + shape->vertices[i].x))
 			c = !c;
 	}
 	return c;

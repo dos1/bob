@@ -31,6 +31,7 @@ struct GamestateResources {
 	struct Entity *square1, *square2, *square3;
 	struct Entity* walls[4];
 	bool up, down;
+	bool w, a, s, d;
 };
 
 int Gamestate_ProgressCount = 1; // number of loading steps as reported by Gamestate_Load; 0 when missing
@@ -61,6 +62,32 @@ void Gamestate_Tick(struct Game* game, struct GamestateResources* data) {
 		vrWorldStep(data->world);
 		data->world->timeStep = 1.0 / 60.0;
 	}*/
+
+	if (data->w) {
+		data->square1->pivotY -= 0.02;
+	}
+	if (data->s) {
+		data->square1->pivotY += 0.02;
+	}
+	if (data->a) {
+		data->square1->pivotX -= 0.02;
+	}
+	if (data->d) {
+		data->square1->pivotX += 0.02;
+	}
+
+	if (data->square1->pivotX > 1.0) {
+		data->square1->pivotX = 1.0;
+	}
+	if (data->square1->pivotX < 0.0) {
+		data->square1->pivotX = 0.0;
+	}
+	if (data->square1->pivotY > 1.0) {
+		data->square1->pivotY = 1.0;
+	}
+	if (data->square1->pivotY < 0.0) {
+		data->square1->pivotY = 0.0;
+	}
 }
 
 void Gamestate_Draw(struct Game* game, struct GamestateResources* data) {
@@ -71,7 +98,8 @@ void Gamestate_Draw(struct Game* game, struct GamestateResources* data) {
 	DrawEntity(game, data->square3);
 
 	vrVec2 pivot = GetPivot(data->square1);
-	al_draw_filled_rectangle(pivot.x - 1, pivot.y - 1, pivot.x + 1, pivot.y + 1, al_map_rgb(255, 0, 0));
+	al_draw_filled_circle(pivot.x, pivot.y, 1, al_map_rgb(255, 0, 0));
+	//al_draw_filled_rectangle(pivot.x - 1, pivot.y - 1, pivot.x + 1, pivot.y + 1, al_map_rgb(255, 0, 0));
 
 	DrawEntity(game, data->walls[0]);
 	DrawEntity(game, data->walls[1]);
@@ -98,6 +126,34 @@ void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, 
 	}
 	if ((ev->type == ALLEGRO_EVENT_KEY_UP) && (ev->keyboard.keycode == ALLEGRO_KEY_UP)) {
 		data->up = false;
+	}
+
+	if ((ev->type == ALLEGRO_EVENT_KEY_DOWN) && (ev->keyboard.keycode == ALLEGRO_KEY_W)) {
+		data->w = true;
+	}
+	if ((ev->type == ALLEGRO_EVENT_KEY_UP) && (ev->keyboard.keycode == ALLEGRO_KEY_W)) {
+		data->w = false;
+	}
+
+	if ((ev->type == ALLEGRO_EVENT_KEY_DOWN) && (ev->keyboard.keycode == ALLEGRO_KEY_A)) {
+		data->a = true;
+	}
+	if ((ev->type == ALLEGRO_EVENT_KEY_UP) && (ev->keyboard.keycode == ALLEGRO_KEY_A)) {
+		data->a = false;
+	}
+
+	if ((ev->type == ALLEGRO_EVENT_KEY_DOWN) && (ev->keyboard.keycode == ALLEGRO_KEY_S)) {
+		data->s = true;
+	}
+	if ((ev->type == ALLEGRO_EVENT_KEY_UP) && (ev->keyboard.keycode == ALLEGRO_KEY_S)) {
+		data->s = false;
+	}
+
+	if ((ev->type == ALLEGRO_EVENT_KEY_DOWN) && (ev->keyboard.keycode == ALLEGRO_KEY_D)) {
+		data->d = true;
+	}
+	if ((ev->type == ALLEGRO_EVENT_KEY_UP) && (ev->keyboard.keycode == ALLEGRO_KEY_D)) {
+		data->d = false;
 	}
 }
 
