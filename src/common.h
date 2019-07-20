@@ -23,7 +23,9 @@
 struct Entity {
 	vrRigidBody* body;
 	vrShape* shape;
+	vrWorld* world;
 	float width, height;
+	float pivotX, pivotY;
 };
 
 struct CommonResources {
@@ -31,6 +33,7 @@ struct CommonResources {
 	bool unused;
 };
 
+vrVec2 GetPivot(struct Entity* entity);
 void ChangeEntitySize(struct Game* game, struct Entity* entity, float scale);
 struct Entity* CreateEntity(struct Game* game, vrWorld* world, float x, float y, float w, float h, float mass, float friction, float restitution, bool gravity);
 void DrawEntity(struct Game* game, struct Entity* entity);
