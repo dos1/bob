@@ -312,5 +312,7 @@ struct CommonResources* CreateGameData(struct Game* game) {
 }
 
 void DestroyGameData(struct Game* game) {
+	al_destroy_audio_stream(game->data->music);
+	al_destroy_mixer(game->data->mixer);
 	free(game->data);
 }
