@@ -28,13 +28,25 @@ struct GamestateResources {
 	// This struct is for every resource allocated and used by your gamestate.
 	// It gets created on load and then gets passed around to all other function calls.
 	vrWorld* world;
-	struct Entity *square1, *square2, *square3;
-	struct Entity* walls[4];
+	struct Entity* player;
+	struct Entity* entities[9999];
+	int entity_num;
+	struct Entity* exit;
 	bool up, down;
 	bool w, a, s, d;
 };
 
 int Gamestate_ProgressCount = 1; // number of loading steps as reported by Gamestate_Load; 0 when missing
+
+static void Start(struct Game* game, struct GamestateResources* data) {
+	data->player = CreateEntity(game, data->world, 150, -150, 150, 150, 0.01, 0.0, 0.0, true, 1);
+}
+
+static void Restart(struct Game* game, struct GamestateResources* data) {
+	vrShape* shape = data->player->body->shape->data[0];
+	shape->move(shape->shape, vrVect(999999, 999999));
+	Start(game, data);
+}
 
 void Gamestate_Logic(struct Game* game, struct GamestateResources* data, double delta) {
 	// Here you should do all your game logic as if <delta> seconds have passed.
@@ -43,11 +55,11 @@ void Gamestate_Logic(struct Game* game, struct GamestateResources* data, double 
 void Gamestate_Tick(struct Game* game, struct GamestateResources* data) {
 	// Here you should do all your game logic as if <delta> seconds have passed.
 	if (data->down) {
-		ChangeEntitySize(game, data->square1, 0.98);
+		ChangeEntitySize(game, data->player, 0.975);
 	}
 	if (data->up) {
 		//if (!data->square1->body->manifolds->sizeof_active) {
-		ChangeEntitySize(game, data->square1, 1.02);
+		ChangeEntitySize(game, data->player, 1.025);
 		//vrWorldQueryCollisions(data->world);
 		//if (data->square1->body->manifolds->sizeof_active) {
 		//	ChangeEntitySize(game, data->square1, 0.98);
@@ -56,55 +68,94 @@ void Gamestate_Tick(struct Game* game, struct GamestateResources* data) {
 	}
 	if (!data->down && !data->up) {
 		vrWorldStep(data->world);
-	}
-	/*else {
-		data->world->timeStep = 1.0 / 6000.0;
+	} else {
+		data->world->timeStep = 1.0 / 600.0;
 		vrWorldStep(data->world);
 		data->world->timeStep = 1.0 / 60.0;
-	}*/
+	}
 
-	if (data->w) {
-		data->square1->pivotY -= 0.02;
-	}
-	if (data->s) {
-		data->square1->pivotY += 0.02;
-	}
 	if (data->a) {
-		data->square1->pivotX -= 0.02;
+		data->player->pivotY += 0.0333 * sin(data->player->body->orientation);
+		data->player->pivotX -= 0.0333 * cos(data->player->body->orientation);
 	}
 	if (data->d) {
-		data->square1->pivotX += 0.02;
+		data->player->pivotY -= 0.0333 * sin(data->player->body->orientation);
+		data->player->pivotX += 0.0333 * cos(data->player->body->orientation);
+	}
+	if (data->w) {
+		data->player->pivotX -= 0.0333 * sin(data->player->body->orientation);
+		data->player->pivotY -= 0.0333 * cos(data->player->body->orientation);
+	}
+	if (data->s) {
+		data->player->pivotX += 0.0333 * sin(data->player->body->orientation);
+		data->player->pivotY += 0.0333 * cos(data->player->body->orientation);
 	}
 
-	if (data->square1->pivotX > 1.0) {
-		data->square1->pivotX = 1.0;
+	if (data->player->pivotX > 1.0) {
+		data->player->pivotX = 1.0;
 	}
-	if (data->square1->pivotX < 0.0) {
-		data->square1->pivotX = 0.0;
+	if (data->player->pivotX < 0.0) {
+		data->player->pivotX = 0.0;
 	}
-	if (data->square1->pivotY > 1.0) {
-		data->square1->pivotY = 1.0;
+	if (data->player->pivotY > 1.0) {
+		data->player->pivotY = 1.0;
 	}
-	if (data->square1->pivotY < 0.0) {
-		data->square1->pivotY = 0.0;
+	if (data->player->pivotY < 0.0) {
+		data->player->pivotY = 0.0;
 	}
+
+	if (data->player->body->center.y > 1600) {
+		Restart(game, data);
+	}
+
+	vrPolygonShape* p = ((vrShape*)(data->player->body->shape->data[0]))->shape;
+	vrPolygonShape* e = ((vrShape*)(data->exit->body->shape->data[0]))->shape;
+	if (IsInside(e, p->vertices[0]) && IsInside(e, p->vertices[1]) && IsInside(e, p->vertices[2]) && IsInside(e, p->vertices[3])) {
+		Restart(game, data);
+	}
+}
+
+static struct Entity* PushEntity(struct Game* game, struct GamestateResources* data, struct Entity* entity) {
+	data->entities[data->entity_num++] = entity;
+	return entity;
 }
 
 void Gamestate_Draw(struct Game* game, struct GamestateResources* data) {
 	// Draw everything to the screen here.
 
-	DrawEntity(game, data->square1);
-	DrawEntity(game, data->square2);
-	DrawEntity(game, data->square3);
+	ClearToColor(game, al_map_rgba(0, 0, 0, 0));
 
-	vrVec2 pivot = GetPivot(data->square1);
-	al_draw_filled_circle(pivot.x, pivot.y, 1, al_map_rgb(255, 0, 0));
+	for (int i = 0; i < data->entity_num; i++) {
+		DrawEntity(game, data->entities[i]);
+	}
+
+	float c = 0.9 - sin(game->time * 4) * 0.1;
+	al_draw_rectangle(1920 - 250, 1080 - 250, 1920 - 50, 1080 - 50, al_map_rgb_f(c, c * 1.1, c * 1.1), 5);
+	al_draw_rectangle(1920 - 250 + 8, 1080 - 250 + 8, 1920 - 50 - 8, 1080 - 50 - 8, al_map_rgb_f(c, c * 1.1, c * 1.1), 4);
+	al_draw_rectangle(1920 - 250 + 15, 1080 - 250 + 15, 1920 - 50 - 15, 1080 - 50 - 15, al_map_rgb_f(c, c * 1.1, c * 1.1), 3);
+	al_draw_rectangle(1920 - 250 + 21, 1080 - 250 + 21, 1920 - 50 - 21, 1080 - 50 - 21, al_map_rgb_f(c, c * 1.1, c * 1.1), 2);
+	al_draw_rectangle(1920 - 250 + 26, 1080 - 250 + 26, 1920 - 50 - 26, 1080 - 50 - 26, al_map_rgb_f(c, c * 1.1, c * 1.1), 1);
+
+	DrawEntity(game, data->player);
+	if (data->up || data->down) {
+		al_draw_filled_circle(data->player->body->center.x, data->player->body->center.y, 4, al_map_rgb(10, 200, 200));
+
+		al_draw_line(data->player->body->center.x, data->player->body->center.y,
+			data->player->body->center.x + data->player->body->velocity.x / 8.0, data->player->body->center.y + data->player->body->velocity.y / 8.0,
+			al_map_rgb(10, 200, 200), 2);
+	}
+	if (data->up || data->down || data->w || data->a || data->s || data->d) {
+		vrVec2 pivot = GetPivot(data->player);
+		al_draw_filled_circle(pivot.x, pivot.y, 4, al_map_rgb(200, 200, 40));
+	}
+
 	//al_draw_filled_rectangle(pivot.x - 1, pivot.y - 1, pivot.x + 1, pivot.y + 1, al_map_rgb(255, 0, 0));
 
-	DrawEntity(game, data->walls[0]);
+	/*	DrawEntity(game, data->walls[0]);
 	DrawEntity(game, data->walls[1]);
 	DrawEntity(game, data->walls[2]);
 	DrawEntity(game, data->walls[3]);
+	*/
 }
 
 void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, ALLEGRO_EVENT* ev) {
@@ -157,6 +208,12 @@ void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, 
 	}
 }
 
+static struct Entity* Rotate(float angle, struct Entity* entity) {
+	vrShape* shape = entity->body->shape->data[0];
+	shape->rotate(shape->shape, angle, shape->getCenter(shape->shape));
+	return entity;
+}
+
 void* Gamestate_Load(struct Game* game, void (*progress)(struct Game*)) {
 	// Called once, when the gamestate library is being loaded.
 	// Good place for allocating memory, loading bitmaps etc.
@@ -170,15 +227,35 @@ void* Gamestate_Load(struct Game* game, void (*progress)(struct Game*)) {
 	data->world = vrWorldInit(vrWorldAlloc());
 	data->world->gravity = vrVect(0, 9.81);
 
-	data->square1 = CreateEntity(game, data->world, 60, 10, 20, 20, 0.1, 0.0, 0.0, true);
-	data->square2 = CreateEntity(game, data->world, 50, 60, 20, 20, -1, 9999, 0, false);
-	data->square3 = CreateEntity(game, data->world, 90, 130, 20, 20, -1, 9999, 1.5, false);
+	data->entity_num = 0;
 
-	data->walls[0] = CreateEntity(game, data->world, -20, -100, 20, 280, -1, 2, 0.1, false);
-	data->walls[1] = CreateEntity(game, data->world, 320, -100, 20, 280, -1, 2, 0.1, false);
-	data->walls[2] = CreateEntity(game, data->world, 0, 180, 320, 20, -1, 2, 0.1, false);
-	data->walls[3] = CreateEntity(game, data->world, 0, -120, 320, 20, -1, 2, 0.1, false);
+	Start(game, data);
 
+	PushEntity(game, data, CreateEntity(game, data->world, 0, 350, 400, 50, -1, 1, 0, false, 0));
+
+	PushEntity(game, data, Rotate(0.25, CreateEntity(game, data->world, 550, 750, 450, 50, -1, 0.05, 0, false, 0)));
+	PushEntity(game, data, CreateEntity(game, data->world, 1200, 0, 50, 700, -1, 0.5, 0, false, 0));
+
+	PushEntity(game, data, CreateEntity(game, data->world, 1300, 1030, 620, 50, -1, 1, 0, false, 0));
+	/*
+	data->exit = vrShapeInit(vrShapeAlloc());
+	data->exit = vrShapePolyInit(data->exit);
+	data->exit->shape = vrPolyBoxInit(data->exit->shape, 1920 - 250, 1080 - 250, 200, 200);
+*/
+	data->exit = PushEntity(game, data, CreateEntity(game, data->world, 1920 - 250, 1080 - 250, 200, 200, -1, 0, 0, false, 2));
+	data->exit->body->collisionData.categoryMask = 0;
+	data->exit->body->collisionData.maskBit = 0;
+
+	//PushEntity(game, data, CreateEntity(game, data->world, 50, 60, 20, 20, -1, 9999, 0, false, 0));
+	//PushEntity(game, data, CreateEntity(game, data->world, 90, 130, 20, 20, -1, 9999, 1.5, false, 0));
+
+	/*
+	// walls
+	//PushEntity(game, data, CreateEntity(game, data->world, 0, 1080, 1920, 100, -1, 2, 0.1, false, 0));
+	PushEntity(game, data, CreateEntity(game, data->world, -100, -1080, 100, 1080 * 3, -1, 2, 0.1, false, 0));
+	PushEntity(game, data, CreateEntity(game, data->world, 1920, -1080, 100, 1080 * 3, -1, 2, 0.1, false, 0));
+	//PushEntity(game, data, CreateEntity(game, data->world, 0, -100, 1920, 100, -1, 2, 0.1, false, 0));
+  */
 	return data;
 }
 

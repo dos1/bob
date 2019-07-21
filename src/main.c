@@ -39,11 +39,12 @@ int main(int argc, char** argv) {
 
 	struct Game* game = libsuperderpy_init(argc, argv, LIBSUPERDERPY_GAMENAME,
 		(struct Params){
-			320,
-			180,
+			1920,
+			1080,
 			.handlers = (struct Handlers){
 				.event = GlobalEventHandler,
 				.destroy = DestroyGameData,
+				.compositor = Compositor,
 			},
 		});
 	if (!game) { return 1; }

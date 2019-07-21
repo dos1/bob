@@ -26,16 +26,20 @@ struct Entity {
 	vrWorld* world;
 	float width, height;
 	float pivotX, pivotY;
+	int kind;
 };
 
 struct CommonResources {
 	// Fill in with common data accessible from all gamestates.
-	bool unused;
+	ALLEGRO_BITMAP *blur1, *blur2, *buffer, *target, *tmp;
+	ALLEGRO_SHADER *kawese_shader, *ghost_shader;
 };
 
+bool IsInside(vrPolygonShape* shape, vrVec2 v);
+void Compositor(struct Game* game);
 vrVec2 GetPivot(struct Entity* entity);
 void ChangeEntitySize(struct Game* game, struct Entity* entity, float scale);
-struct Entity* CreateEntity(struct Game* game, vrWorld* world, float x, float y, float w, float h, float mass, float friction, float restitution, bool gravity);
+struct Entity* CreateEntity(struct Game* game, vrWorld* world, float x, float y, float w, float h, float mass, float friction, float restitution, bool gravity, int kind);
 void DrawEntity(struct Game* game, struct Entity* entity);
 struct CommonResources* CreateGameData(struct Game* game);
 void DestroyGameData(struct Game* game);
