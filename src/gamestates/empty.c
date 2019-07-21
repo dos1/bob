@@ -24,6 +24,66 @@
 #include <vrRigidBody.h>
 #include <vrWorld.h>
 
+static char* LABELS[][20] = {
+	{"Bob was alone.", "...or not.", "He didn't know.", "In fact, he couldn't. He was just a square.", "Unable to think, unable to feel.", "A very squary square.", "Bob was a square.", NULL},
+	{"Bob couldn't move. He was just there.", "Minding his own square business.", "Which means no business at all.", NULL},
+	{"There's one thing he could do though.", "He could grow.", NULL},
+	{"...and ungrow.", "In more sophisticated words, he could also shrink.", NULL},
+	{"A little point appeared on Bob's face", "proving beyond any doubt, that this game isn't pointless.", NULL},
+	{"Some other things around appeared as well.", "He didn't care though.", "He couldn't.", NULL},
+	{"\"Where am I supposed to go?\" - thought someone.", "Someone who wasn't Bob.", "Not being a square makes thinking somewhat easier.", NULL},
+	{"Bob has reached an exit.", "Not that he would care.", "But that happened. I found it worth mentioning.", NULL},
+	{"Bob would wonder about this strange force that controls his actions.", "What is it?", "Is there some external entity controlling his own actions?", "Is there a goal they were following?", "Is there something special about Bob to make them interested in him?", "He would, if he could.", NULL},
+	{"Bob couldn't die.", "Amazingly though, he could make others feel like they just died.", "What an extraordinary ability for a square to possess.", NULL},
+	{"Bob still couldn't die.", "Pretty handy, if you ask me.", NULL},
+	{"Stairs.", NULL},
+	{"Lots of stairs.", NULL},
+	{"There were answers on top.", "You could feel that in the air.", NULL},
+	{"What's the Bob's legacy?", "Who is he?", "How did he come to exist?", "Was it God?", NULL},
+	{"So many questions.", "...and nobody to ask them.", NULL},
+	{"Is this it...?", NULL},
+};
+
+static float POSITIONS[][20] = {
+	{0, 2, 3.2, 4.7, 8, 11, 13.5},
+	{0, 2.8, 5.2},
+	{0, 2.3},
+	{0, 1.6},
+	{0, 2.5},
+	{0, 2.5, 4},
+	{0, 3.5, 5},
+	{0, 2.3, 4.3},
+	{0, 4.5, 6, 9.5, 12, 17},
+	{0, 1.5, 5.7},
+	{0, 2},
+	{0},
+	{0},
+	{0, 2},
+	{0, 2, 3.4, 6},
+	{0, 2},
+	{0},
+};
+
+static char* FILES[20] = {
+	"voice/1.flac",
+	"voice/2.flac",
+	"voice/3.flac",
+	"voice/4.flac",
+	"voice/5.flac",
+	"voice/6.flac",
+	"voice/7.flac",
+	"voice/8.flac",
+	"voice/9.flac",
+	"voice/die1.flac",
+	"voice/die2.flac",
+	"voice/stairs1.flac",
+	"voice/stairs2.flac",
+	"voice/stairs3.flac",
+	"voice/stairs4.flac",
+	"voice/stairs5.flac",
+	"voice/stairs6.flac",
+};
+
 struct GamestateResources {
 	// This struct is for every resource allocated and used by your gamestate.
 	// It gets created on load and then gets passed around to all other function calls.
@@ -34,25 +94,264 @@ struct GamestateResources {
 	struct Entity* exit;
 	bool up, down;
 	bool w, a, s, d;
+
+	bool growlock, pivotlock, inputlock;
+	bool upped, downed, pivoted, triedtomove, shown;
+
+	struct Timeline* timeline;
+
+	int current_voice;
+	int fab_voice;
+
+	int level;
+	int die_counter;
+
+	struct {
+		ALLEGRO_SAMPLE* sample;
+		ALLEGRO_SAMPLE_INSTANCE* instance;
+		int id;
+	} voices[17];
 };
 
-int Gamestate_ProgressCount = 1; // number of loading steps as reported by Gamestate_Load; 0 when missing
+int Gamestate_ProgressCount = 18; // number of loading steps as reported by Gamestate_Load; 0 when missing
 
-static void Start(struct Game* game, struct GamestateResources* data) {
+static TM_ACTION(WaitForVoice) {
+	TM_RunningOnly;
+	if (data->current_voice >= 0) {
+		return !al_get_sample_instance_playing(data->voices[data->current_voice].instance);
+	}
+	return false;
+}
+
+static TM_ACTION(WaitForTryMove) {
+	TM_RunningOnly;
+	return data->triedtomove;
+}
+
+static TM_ACTION(WaitForPivoted) {
+	TM_RunningOnly;
+	return data->pivoted;
+}
+
+static TM_ACTION(WaitForUpped) {
+	TM_RunningOnly;
+	return data->upped;
+}
+
+static TM_ACTION(WaitForPosition) {
+	TM_RunningOnly;
+	return data->player->body->center.x > 1920 / 2 && data->player->body->center.y < 1080 / 2;
+}
+
+static TM_ACTION(WaitForDowned) {
+	TM_RunningOnly;
+	return data->downed;
+}
+
+static TM_ACTION(UnlockInput) {
+	TM_RunningOnly;
+	data->inputlock = false;
+	return true;
+}
+
+static TM_ACTION(UnlockGrow) {
+	TM_RunningOnly;
+	data->growlock = false;
+	return true;
+}
+
+static TM_ACTION(ShowStuff) {
+	TM_RunningOnly;
+	data->shown = true;
+	return true;
+}
+
+static TM_ACTION(UnlockPivot) {
+	TM_RunningOnly;
+	data->pivotlock = false;
+	return true;
+}
+
+static TM_ACTION(PlayNextVoice) {
+	TM_RunningOnly;
+	data->fab_voice++;
+	if (data->fab_voice == 9) {
+		data->fab_voice = 11;
+	}
+	data->current_voice = data->fab_voice;
+	if (data->current_voice < 17) {
+		al_play_sample_instance(data->voices[data->current_voice].instance);
+	}
+	return true;
+}
+
+static TM_ACTION(JustDied1) {
+	TM_RunningOnly;
+	data->current_voice = 9;
+	al_play_sample_instance(data->voices[data->current_voice].instance);
+	return true;
+}
+
+static TM_ACTION(JustDied2) {
+	TM_RunningOnly;
+	data->current_voice = 10;
+	al_play_sample_instance(data->voices[data->current_voice].instance);
+	return true;
+}
+
+static void
+	Start(struct Game* game, struct GamestateResources* data) {
 	data->player = CreateEntity(game, data->world, 150, -150, 150, 150, 0.01, 0.0, 0.0, true, 1);
 	game->data->chime = 4.0;
+}
+
+static struct Entity* PushEntity(struct Game* game, struct GamestateResources* data, struct Entity* entity) {
+	data->entities[data->entity_num++] = entity;
+	return entity;
+}
+
+static struct Entity* Rotate(float angle, struct Entity* entity) {
+	vrShape* shape = entity->body->shape->data[0];
+	shape->rotate(shape->shape, angle, shape->getCenter(shape->shape));
+	return entity;
+}
+
+static void StartLevel(struct Game* game, struct GamestateResources* data, int level) {
+	data->level = level;
+	data->world = vrWorldInit(vrWorldAlloc());
+	data->world->gravity = vrVect(0, 9.81);
+
+	Start(game, data);
+
+	data->entity_num = 0;
+
+	if (level == 0) {
+		PushEntity(game, data, CreateEntity(game, data->world, 0, 600, 1920, 50, -1, 1, 0, false, 0));
+		data->exit = PushEntity(game, data, CreateEntity(game, data->world, 1920 - 200, 600 - 200, 200, 200, -1, 0, 0, false, 2));
+	}
+
+	if (level == 1) {
+		PushEntity(game, data, CreateEntity(game, data->world, 0, 500, 800 - 10, 50, -1, 1, 0, false, 0));
+		PushEntity(game, data, CreateEntity(game, data->world, 800, 500, 400, 50, 0.005, 10, 0, false, 3));
+		PushEntity(game, data, CreateEntity(game, data->world, 1200 + 10, 500, 720 - 10, 50, -1, 1, 0, false, 0));
+		data->exit = PushEntity(game, data, CreateEntity(game, data->world, 1920 - 200, 1080 - 250, 200, 200, -1, 0, 0, false, 2));
+		PushEntity(game, data, CreateEntity(game, data->world, 1920 - 1120, 1080 - 50, 1120, 50, -1, 1, 0, false, 0));
+	}
+
+	if (level == 2) {
+		PushEntity(game, data, CreateEntity(game, data->world, 0, 350, 400, 50, -1, 1, 0, false, 0));
+
+		PushEntity(game, data, Rotate(0.25, CreateEntity(game, data->world, 550, 750, 450, 50, -1, 0.05, 0, false, 0)));
+		PushEntity(game, data, CreateEntity(game, data->world, 1200, 0, 50, 700, -1, 0.5, 0, false, 0));
+
+		PushEntity(game, data, CreateEntity(game, data->world, 1300, 1030, 620, 50, -1, 1, 0, false, 0));
+		/*
+	data->exit = vrShapeInit(vrShapeAlloc());
+	data->exit = vrShapePolyInit(data->exit);
+	data->exit->shape = vrPolyBoxInit(data->exit->shape, 1920 - 250, 1080 - 250, 200, 200);
+*/
+		data->exit = PushEntity(game, data, CreateEntity(game, data->world, 1920 - 250, 1080 - 250, 200, 200, -1, 0, 0, false, 2));
+
+		//PushEntity(game, data, CreateEntity(game, data->world, 50, 60, 20, 20, -1, 9999, 0, false, 0));
+		//PushEntity(game, data, CreateEntity(game, data->world, 90, 130, 20, 20, -1, 9999, 1.5, false, 0));
+
+		/*
+	// walls
+	//PushEntity(game, data, CreateEntity(game, data->world, 0, 1080, 1920, 100, -1, 2, 0.1, false, 0));
+	PushEntity(game, data, CreateEntity(game, data->world, -100, -1080, 100, 1080 * 3, -1, 2, 0.1, false, 0));
+	PushEntity(game, data, CreateEntity(game, data->world, 1920, -1080, 100, 1080 * 3, -1, 2, 0.1, false, 0));
+	//PushEntity(game, data, CreateEntity(game, data->world, 0, -100, 1920, 100, -1, 2, 0.1, false, 0));
+  */
+	}
+
+	if (level == 3) {
+		PushEntity(game, data, CreateEntity(game, data->world, 0, 700, 1000 - 10, 50, -1, 1, 0, false, 0));
+		PushEntity(game, data, CreateEntity(game, data->world, 1100, 1000, 400, 50, -1, 2, 2, false, 4));
+
+		data->exit = PushEntity(game, data, CreateEntity(game, data->world, 1920 - 250, 1080 - 250 - 500, 200, 200, -1, 0, 0, false, 2));
+		PushEntity(game, data, CreateEntity(game, data->world, 1920 - 300, 1080 - 50 - 500, 300, 50, -1, 1, 0, false, 0));
+
+		PushEntity(game, data, CreateEntity(game, data->world, 1920 - 50, -200, 50, 1080 - 250 - 800 + 200 + 100 + 200 + 200, -1, 1, 0, false, 0));
+
+		PushEntity(game, data, CreateEntity(game, data->world, 0, 0, 50, 700, -1, 1, 0, false, 0));
+		PushEntity(game, data, CreateEntity(game, data->world, 500, 0, 1920 - 500 - 50, 50, -1, 1, 0, false, 0));
+	}
+
+	if (level == 4) {
+		// stairs
+		PushEntity(game, data, CreateEntity(game, data->world, 0, 1080 - 50, 1920, 50, -1, 1, 0, false, 0));
+		PushEntity(game, data, CreateEntity(game, data->world, 120, 1080 - 50 * 2, 1920 - 120, 50, -1, 1, 0, false, 0));
+		PushEntity(game, data, CreateEntity(game, data->world, 120 * 2, 1080 - 50 * 3, 1920 - 120 * 2, 50, -1, 1, 0, false, 0));
+		PushEntity(game, data, CreateEntity(game, data->world, 120 * 3, 1080 - 50 * 4, 1920 - 120 * 3, 50, -1, 1, 0, false, 0));
+		PushEntity(game, data, CreateEntity(game, data->world, 120 * 4, 1080 - 50 * 5, 1920 - 120 * 4, 50, -1, 1, 0, false, 0));
+		PushEntity(game, data, CreateEntity(game, data->world, 120 * 5, 1080 - 50 * 6, 1920 - 120 * 5, 50, -1, 1, 0, false, 0));
+		PushEntity(game, data, CreateEntity(game, data->world, 120 * 6, 1080 - 50 * 7, 1920 - 120 * 6, 50, -1, 1, 0, false, 0));
+		PushEntity(game, data, CreateEntity(game, data->world, 120 * 7, 1080 - 50 * 8, 1920 - 120 * 7, 50, -1, 1, 0, false, 0));
+		PushEntity(game, data, CreateEntity(game, data->world, 120 * 8, 1080 - 50 * 9, 1920 - 120 * 8, 50, -1, 1, 0, false, 0));
+		PushEntity(game, data, CreateEntity(game, data->world, 120 * 9, 1080 - 50 * 10, 1920 - 120 * 9, 50, -1, 1, 0, false, 0));
+		PushEntity(game, data, CreateEntity(game, data->world, 120 * 10, 1080 - 50 * 11, 1920 - 120 * 10, 50, -1, 1, 0, false, 0));
+		PushEntity(game, data, CreateEntity(game, data->world, 120 * 11, 1080 - 50 * 12, 1920 - 120 * 11, 50, -1, 1, 0, false, 0));
+		PushEntity(game, data, CreateEntity(game, data->world, 120 * 12, 1080 - 50 * 13, 1920 - 120 * 12, 50, -1, 1, 0, false, 0));
+		PushEntity(game, data, CreateEntity(game, data->world, 120 * 13, 1080 - 50 * 14, 1920 - 120 * 13, 50, -1, 1, 0, false, 0));
+		PushEntity(game, data, CreateEntity(game, data->world, 120 * 14, 1080 - 50 * 15, 1920 - 120 * 14, 50, -1, 1, 0, false, 0));
+
+		data->exit = PushEntity(game, data, CreateEntity(game, data->world, 1920 - 200, 1080 - 50 * 15 - 200, 200, 200, -1, 0, 0, false, 2));
+	}
+
+	data->exit->body->collisionData.categoryMask = 0;
+	data->exit->body->collisionData.maskBit = 0;
 }
 
 static void Restart(struct Game* game, struct GamestateResources* data) {
 	vrShape* shape = data->player->body->shape->data[0];
 	shape->move(shape->shape, vrVect(999999, 999999));
-	Start(game, data);
+	StartLevel(game, data, data->level);
 }
 
 void Gamestate_Logic(struct Game* game, struct GamestateResources* data, double delta) {
 	// Here you should do all your game logic as if <delta> seconds have passed.
 	//vrWorldStep(data->world);
+	TM_Process(data->timeline, delta);
 }
+
+static void Win(struct Game* game, struct GamestateResources* data) {
+	if (data->level + 1 == 1) {
+		TM_AddAction(data->timeline, PlayNextVoice, NULL);
+		TM_AddAction(data->timeline, WaitForVoice, NULL);
+	}
+	if (data->level + 1 == 3) {
+		TM_AddAction(data->timeline, PlayNextVoice, NULL);
+		TM_AddAction(data->timeline, WaitForVoice, NULL);
+	}
+	if (data->level + 1 == 4) {
+		TM_AddAction(data->timeline, PlayNextVoice, NULL);
+		TM_AddAction(data->timeline, WaitForVoice, NULL);
+		TM_AddDelay(data->timeline, 2);
+		TM_AddAction(data->timeline, PlayNextVoice, NULL);
+		TM_AddAction(data->timeline, WaitForVoice, NULL);
+
+		TM_AddDelay(data->timeline, 4);
+		TM_AddAction(data->timeline, PlayNextVoice, NULL);
+		TM_AddAction(data->timeline, WaitForVoice, NULL);
+
+		TM_AddDelay(data->timeline, 2);
+		TM_AddAction(data->timeline, PlayNextVoice, NULL);
+		TM_AddAction(data->timeline, WaitForVoice, NULL);
+
+		TM_AddDelay(data->timeline, 5);
+		TM_AddAction(data->timeline, PlayNextVoice, NULL);
+		TM_AddAction(data->timeline, WaitForVoice, NULL);
+
+		TM_AddAction(data->timeline, WaitForPosition, NULL);
+		TM_AddAction(data->timeline, PlayNextVoice, NULL);
+		TM_AddAction(data->timeline, WaitForVoice, NULL);
+	}
+	if (data->level + 1 == 5) {
+		SwitchCurrentGamestate(game, "example");
+	}
+	StartLevel(game, data, data->level + 1);
+}
+
 void Gamestate_Tick(struct Game* game, struct GamestateResources* data) {
 	// Here you should do all your game logic as if <delta> seconds have passed.
 
@@ -112,13 +411,21 @@ void Gamestate_Tick(struct Game* game, struct GamestateResources* data) {
 	}
 
 	if (data->player->body->center.y > 1600) {
+		data->die_counter++;
 		Restart(game, data);
+		if (data->die_counter == 1) {
+			TM_AddAction(data->timeline, JustDied1, NULL);
+			TM_AddAction(data->timeline, WaitForVoice, NULL);
+		} else if (data->die_counter == 2) {
+			TM_AddAction(data->timeline, JustDied2, NULL);
+			TM_AddAction(data->timeline, WaitForVoice, NULL);
+		}
 	}
 
 	vrPolygonShape* p = ((vrShape*)(data->player->body->shape->data[0]))->shape;
 	vrPolygonShape* e = ((vrShape*)(data->exit->body->shape->data[0]))->shape;
 	if (IsInside(e, p->vertices[0]) && IsInside(e, p->vertices[1]) && IsInside(e, p->vertices[2]) && IsInside(e, p->vertices[3])) {
-		Restart(game, data);
+		Win(game, data);
 	}
 
 	game->data->in = (data->up || data->down);
@@ -142,26 +449,24 @@ void Gamestate_Tick(struct Game* game, struct GamestateResources* data) {
 	}
 }
 
-static struct Entity* PushEntity(struct Game* game, struct GamestateResources* data, struct Entity* entity) {
-	data->entities[data->entity_num++] = entity;
-	return entity;
-}
-
 void Gamestate_Draw(struct Game* game, struct GamestateResources* data) {
 	// Draw everything to the screen here.
 
 	ClearToColor(game, al_map_rgba(0, 0, 0, 0));
 
-	for (int i = 0; i < data->entity_num; i++) {
-		DrawEntity(game, data->entities[i]);
-	}
+	if (data->shown) {
+		for (int i = 0; i < data->entity_num; i++) {
+			DrawEntity(game, data->entities[i]);
+		}
 
-	float c = 0.9 - sin(game->time * 4) * 0.1;
-	al_draw_rectangle(1920 - 250, 1080 - 250, 1920 - 50, 1080 - 50, al_map_rgb_f(c, c * 1.1, c * 1.1), 5);
-	al_draw_rectangle(1920 - 250 + 8, 1080 - 250 + 8, 1920 - 50 - 8, 1080 - 50 - 8, al_map_rgb_f(c, c * 1.1, c * 1.1), 4);
-	al_draw_rectangle(1920 - 250 + 15, 1080 - 250 + 15, 1920 - 50 - 15, 1080 - 50 - 15, al_map_rgb_f(c, c * 1.1, c * 1.1), 3);
-	al_draw_rectangle(1920 - 250 + 21, 1080 - 250 + 21, 1920 - 50 - 21, 1080 - 50 - 21, al_map_rgb_f(c, c * 1.1, c * 1.1), 2);
-	al_draw_rectangle(1920 - 250 + 26, 1080 - 250 + 26, 1920 - 50 - 26, 1080 - 50 - 26, al_map_rgb_f(c, c * 1.1, c * 1.1), 1);
+		float c = 0.9 - sin(game->time * 4) * 0.1;
+		al_draw_rectangle(data->exit->body->center.x - 100, data->exit->body->center.y - 100, data->exit->body->center.x + 100, data->exit->body->center.y + 100, al_map_rgb_f(c, c * 1.1, c * 1.1), 5);
+
+		al_draw_rectangle(data->exit->body->center.x - 100 + 8, data->exit->body->center.y - 100 + 8, data->exit->body->center.x + 100 - 8, data->exit->body->center.y + 100 - 8, al_map_rgb_f(c, c * 1.1, c * 1.1), 4);
+		al_draw_rectangle(data->exit->body->center.x - 100 + 15, data->exit->body->center.y - 100 + 15, data->exit->body->center.x + 100 - 15, data->exit->body->center.y + 100 - 15, al_map_rgb_f(c, c * 1.1, c * 1.1), 3);
+		al_draw_rectangle(data->exit->body->center.x - 100 + 21, data->exit->body->center.y - 100 + 21, data->exit->body->center.x + 100 - 21, data->exit->body->center.y + 100 - 21, al_map_rgb_f(c, c * 1.1, c * 1.1), 2);
+		al_draw_rectangle(data->exit->body->center.x - 100 + 26, data->exit->body->center.y - 100 + 26, data->exit->body->center.x + 100 - 26, data->exit->body->center.y + 100 - 26, al_map_rgb_f(c, c * 1.1, c * 1.1), 1);
+	}
 
 	DrawEntity(game, data->player);
 	if (data->up || data->down) {
@@ -176,7 +481,33 @@ void Gamestate_Draw(struct Game* game, struct GamestateResources* data) {
 		al_draw_filled_circle(pivot.x, pivot.y, 8, al_map_rgb(200, 200, 40));
 	}
 
-	//DrawTextWithShadow(game->data->font, al_map_rgb(255, 255, 255), data->player->body->center.x + data->player->width * sqrt(2) / 2, data->player->body->center.y - 40, ALLEGRO_ALIGN_LEFT, "Bob was a square.");
+	if (data->current_voice >= 0) {
+		if (al_get_sample_instance_playing(data->voices[data->current_voice].instance)) {
+			float pos = al_get_sample_instance_position(data->voices[data->current_voice].instance) / (float)al_get_sample_instance_length(data->voices[data->current_voice].instance) * al_get_sample_instance_time(data->voices[data->current_voice].instance);
+			PrintConsole(game, "%f", pos);
+			int i = 0;
+			char* txt = "";
+			while (LABELS[data->current_voice][i]) {
+				if (pos >= POSITIONS[data->current_voice][i]) {
+					txt = LABELS[data->current_voice][i];
+				}
+				i++;
+			}
+
+			int width = al_get_text_width(game->data->font, txt);
+
+			if ((data->player->body->center.x + data->player->width * sqrt(2) / 2 > 1920 / 2) && (data->player->body->center.x + data->player->width * sqrt(2) / 2 + width > 1920)) {
+				al_draw_multiline_text(game->data->font, al_map_rgb(255, 255, 255), data->player->body->center.x - data->player->width * sqrt(2) / 2, data->player->body->center.y - 40, data->player->body->center.x - data->player->width * sqrt(2) / 2, 64, ALLEGRO_ALIGN_RIGHT, txt);
+			} else {
+				if (data->player->body->center.x + data->player->width * sqrt(2) / 2 + width > 1920) {
+					al_draw_multiline_text(game->data->font, al_map_rgb(255, 255, 255), data->player->body->center.x + data->player->width * sqrt(2) / 2, data->player->body->center.y - 40, 1920 - (data->player->body->center.x + data->player->width * sqrt(2) / 2), 64, ALLEGRO_ALIGN_LEFT, txt);
+				} else {
+					DrawTextWithShadow(game->data->font, al_map_rgb(255, 255, 255), data->player->body->center.x + data->player->width * sqrt(2) / 2, data->player->body->center.y - 40, ALLEGRO_ALIGN_LEFT,
+						txt);
+				}
+			}
+		}
+	}
 
 	//al_draw_filled_rectangle(pivot.x - 1, pivot.y - 1, pivot.x + 1, pivot.y + 1, al_map_rgb(255, 0, 0));
 
@@ -193,6 +524,22 @@ void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, 
 	if ((ev->type == ALLEGRO_EVENT_KEY_DOWN) && (ev->keyboard.keycode == ALLEGRO_KEY_ESCAPE)) {
 		UnloadCurrentGamestate(game); // mark this gamestate to be stopped and unloaded
 		// When there are no active gamestates, the engine will quit.
+	}
+
+	if ((ev->type == ALLEGRO_EVENT_KEY_DOWN) && (ev->keyboard.keycode == ALLEGRO_KEY_FULLSTOP)) {
+		if (data->current_voice >= 0) {
+			al_set_sample_instance_playing(data->voices[data->current_voice].instance, false);
+		}
+	}
+
+	if (game->config.debug.enabled) {
+		if ((ev->type == ALLEGRO_EVENT_KEY_DOWN) && (ev->keyboard.keycode == ALLEGRO_KEY_ENTER)) {
+			Win(game, data);
+		}
+	}
+
+	if (data->inputlock) {
+		return;
 	}
 
 	if ((ev->type == ALLEGRO_EVENT_KEY_DOWN) && (ev->keyboard.keycode == ALLEGRO_KEY_DOWN)) {
@@ -294,12 +641,32 @@ void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, 
 			}
 		}
 	}
-}
 
-static struct Entity* Rotate(float angle, struct Entity* entity) {
-	vrShape* shape = entity->body->shape->data[0];
-	shape->rotate(shape->shape, angle, shape->getCenter(shape->shape));
-	return entity;
+	if (data->growlock) {
+		if (data->up || data->down) {
+			data->triedtomove = true;
+		}
+		data->up = false;
+		data->down = false;
+	}
+	if (data->up) {
+		data->upped = true;
+	}
+	if (data->down) {
+		data->downed = true;
+	}
+	if (data->pivotlock) {
+		if (data->w || data->a || data->s || data->d) {
+			data->triedtomove = true;
+		}
+		data->w = false;
+		data->a = false;
+		data->s = false;
+		data->d = false;
+	}
+	if (data->w || data->a || data->s || data->d) {
+		data->pivoted = true;
+	}
 }
 
 void* Gamestate_Load(struct Game* game, void (*progress)(struct Game*)) {
@@ -310,40 +677,18 @@ void* Gamestate_Load(struct Game* game, void (*progress)(struct Game*)) {
 	// create VBOs, etc. do it in Gamestate_PostLoad.
 
 	struct GamestateResources* data = calloc(1, sizeof(struct GamestateResources));
+
+	data->timeline = TM_Init(game, data, "bob");
+
 	progress(game); // report that we progressed with the loading, so the engine can move a progress bar
 
-	data->world = vrWorldInit(vrWorldAlloc());
-	data->world->gravity = vrVect(0, 9.81);
+	for (int i = 0; i < 17; i++) {
+		data->voices[i].sample = al_load_sample(GetDataFilePath(game, FILES[i]));
+		data->voices[i].instance = al_create_sample_instance(data->voices[i].sample);
+		al_attach_sample_instance_to_mixer(data->voices[i].instance, game->audio.voice);
+		progress(game);
+	}
 
-	data->entity_num = 0;
-
-	Start(game, data);
-
-	PushEntity(game, data, CreateEntity(game, data->world, 0, 350, 400, 50, -1, 1, 0, false, 0));
-
-	PushEntity(game, data, Rotate(0.25, CreateEntity(game, data->world, 550, 750, 450, 50, -1, 0.05, 0, false, 0)));
-	PushEntity(game, data, CreateEntity(game, data->world, 1200, 0, 50, 700, -1, 0.5, 0, false, 0));
-
-	PushEntity(game, data, CreateEntity(game, data->world, 1300, 1030, 620, 50, -1, 1, 0, false, 0));
-	/*
-	data->exit = vrShapeInit(vrShapeAlloc());
-	data->exit = vrShapePolyInit(data->exit);
-	data->exit->shape = vrPolyBoxInit(data->exit->shape, 1920 - 250, 1080 - 250, 200, 200);
-*/
-	data->exit = PushEntity(game, data, CreateEntity(game, data->world, 1920 - 250, 1080 - 250, 200, 200, -1, 0, 0, false, 2));
-	data->exit->body->collisionData.categoryMask = 0;
-	data->exit->body->collisionData.maskBit = 0;
-
-	//PushEntity(game, data, CreateEntity(game, data->world, 50, 60, 20, 20, -1, 9999, 0, false, 0));
-	//PushEntity(game, data, CreateEntity(game, data->world, 90, 130, 20, 20, -1, 9999, 1.5, false, 0));
-
-	/*
-	// walls
-	//PushEntity(game, data, CreateEntity(game, data->world, 0, 1080, 1920, 100, -1, 2, 0.1, false, 0));
-	PushEntity(game, data, CreateEntity(game, data->world, -100, -1080, 100, 1080 * 3, -1, 2, 0.1, false, 0));
-	PushEntity(game, data, CreateEntity(game, data->world, 1920, -1080, 100, 1080 * 3, -1, 2, 0.1, false, 0));
-	//PushEntity(game, data, CreateEntity(game, data->world, 0, -100, 1920, 100, -1, 2, 0.1, false, 0));
-  */
 	return data;
 }
 
@@ -360,6 +705,53 @@ void Gamestate_Start(struct Game* game, struct GamestateResources* data) {
 	// Called when this gamestate gets control. Good place for initializing state,
 	// playing music etc.
 	al_set_audio_stream_playing(game->data->music, true);
+	data->current_voice = -1;
+	data->fab_voice = -1;
+	data->growlock = true;
+	data->pivotlock = true;
+	data->inputlock = true;
+	data->shown = false;
+	data->die_counter = 0;
+	data->level = 0;
+	data->triedtomove = false;
+	data->entity_num = 0;
+	data->pivoted = false;
+	data->upped = false;
+	data->downed = false;
+	data->w = false;
+	data->a = false;
+	data->s = false;
+	data->d = false;
+	data->up = false;
+	data->down = false;
+
+	TM_CleanQueue(data->timeline);
+	TM_AddDelay(data->timeline, 1);
+	TM_AddAction(data->timeline, PlayNextVoice, NULL);
+	TM_AddAction(data->timeline, WaitForVoice, NULL);
+	TM_AddAction(data->timeline, UnlockInput, NULL);
+	TM_AddAction(data->timeline, WaitForTryMove, NULL);
+	TM_AddAction(data->timeline, PlayNextVoice, NULL);
+	TM_AddAction(data->timeline, WaitForVoice, NULL);
+	TM_AddAction(data->timeline, UnlockGrow, NULL);
+	TM_AddAction(data->timeline, WaitForUpped, NULL);
+	TM_AddAction(data->timeline, PlayNextVoice, NULL);
+	TM_AddAction(data->timeline, WaitForVoice, NULL);
+	TM_AddAction(data->timeline, WaitForDowned, NULL);
+	TM_AddAction(data->timeline, PlayNextVoice, NULL);
+	TM_AddAction(data->timeline, WaitForVoice, NULL);
+	TM_AddAction(data->timeline, UnlockPivot, NULL);
+	TM_AddAction(data->timeline, WaitForPivoted, NULL);
+	TM_AddAction(data->timeline, PlayNextVoice, NULL);
+	TM_AddAction(data->timeline, WaitForVoice, NULL);
+	TM_AddAction(data->timeline, ShowStuff, NULL);
+	TM_AddAction(data->timeline, PlayNextVoice, NULL);
+	TM_AddAction(data->timeline, WaitForVoice, NULL);
+	TM_AddDelay(data->timeline, 3);
+	TM_AddAction(data->timeline, PlayNextVoice, NULL);
+	TM_AddAction(data->timeline, WaitForVoice, NULL);
+
+	StartLevel(game, data, 0);
 }
 
 void Gamestate_Stop(struct Game* game, struct GamestateResources* data) {

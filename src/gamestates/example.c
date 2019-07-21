@@ -23,49 +23,52 @@
 
 struct GamestateResources {
 	ALLEGRO_FONT* font;
-	int blink_counter;
+	ALLEGRO_AUDIO_STREAM* stream;
+	float counter;
 };
 
 int Gamestate_ProgressCount = 1;
 
 void Gamestate_Logic(struct Game* game, struct GamestateResources* data, double delta) {
-	data->blink_counter++;
-	if (data->blink_counter >= 60) {
-		data->blink_counter = 0;
-	}
+	data->counter += delta;
 }
 
 void Gamestate_Draw(struct Game* game, struct GamestateResources* data) {
-	if (data->blink_counter < 50) {
-		al_draw_text(data->font, al_map_rgb(255, 255, 255), game->viewport.width / 2.0, game->viewport.height / 2.0,
-			ALLEGRO_ALIGN_CENTRE, "Nothing to see here, move along!");
+	ClearToColor(game, al_map_rgb(255, 255, 255));
+	if (data->counter > 2.0) {
+		al_draw_text(game->data->font, al_map_rgb(0, 0, 0), 1920 / 2, 1080 / 2, ALLEGRO_ALIGN_CENTER, "Press a button to play again.");
 	}
 }
 
 void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, ALLEGRO_EVENT* ev) {
-	if ((ev->type == ALLEGRO_EVENT_KEY_DOWN) && (ev->keyboard.keycode == ALLEGRO_KEY_ESCAPE)) {
-		UnloadCurrentGamestate(game); // mark this gamestate to be stopped and unloaded
-		// When there are no active gamestates, the engine will quit.
+	if (ev->type == ALLEGRO_EVENT_KEY_DOWN && data->counter > 2.0) {
+		SwitchCurrentGamestate(game, "empty");
 	}
 }
 
 void* Gamestate_Load(struct Game* game, void (*progress)(struct Game*)) {
 	struct GamestateResources* data = calloc(1, sizeof(struct GamestateResources));
+	data->stream = al_load_audio_stream(GetDataFilePath(game, "heaven.wav"), 4, 2048);
+	al_set_audio_stream_playing(data->stream, false);
+	al_set_audio_stream_playmode(data->stream, ALLEGRO_PLAYMODE_ONCE);
+	al_attach_audio_stream_to_mixer(data->stream, game->audio.fx);
+
 	int flags = al_get_new_bitmap_flags();
 	al_set_new_bitmap_flags(flags & ~ALLEGRO_MAG_LINEAR); // disable linear scaling for pixelarty appearance
 	data->font = al_create_builtin_font();
 	progress(game); // report that we progressed with the loading, so the engine can move a progress bar
 	al_set_new_bitmap_flags(flags);
+
 	return data;
 }
 
 void Gamestate_Unload(struct Game* game, struct GamestateResources* data) {
-	al_destroy_font(data->font);
+	al_destroy_audio_stream(data->stream);
 	free(data);
 }
 
 void Gamestate_Start(struct Game* game, struct GamestateResources* data) {
-	data->blink_counter = 0;
+	al_set_audio_stream_playing(data->stream, true);
 }
 
 void Gamestate_Stop(struct Game* game, struct GamestateResources* data) {}

@@ -176,8 +176,15 @@ void DrawEntity(struct Game* game, struct Entity* entity) {
 	vrPolygonShape* pshape = ((vrShape*)entity->body->shape->data[0])->shape;
 	//vrVec2 topleft = pshape->vertices[0];
 	//PrintConsole(game, "%f %f", topleft.x, topleft.y);
-	if (entity->kind == 2) return;
+	if (entity->kind == 2) { return; }
 	ALLEGRO_COLOR color = entity->kind ? al_map_rgb(255, 255, 255) : al_map_rgb(200, 220, 230);
+
+	if (entity->kind == 3) {
+		color = al_map_rgb(150, 160, 180);
+	}
+	if (entity->kind == 4) {
+		color = al_map_rgb(170, 180, 240);
+	}
 
 	ALLEGRO_VERTEX v[] = {
 		{.x = pshape->vertices[0].x, .y = pshape->vertices[0].y, .color = color},
@@ -285,7 +292,7 @@ struct CommonResources* CreateGameData(struct Game* game) {
 	data->buffer = CreateNotPreservedBitmap(al_get_display_width(game->display), al_get_display_height(game->display));
 	data->target = CreateNotPreservedBitmap(al_get_display_width(game->display), al_get_display_height(game->display));
 	data->tmp = CreateNotPreservedBitmap(al_get_display_width(game->display), al_get_display_height(game->display));
-	data->font = al_load_font(GetDataFilePath(game, "fonts/Roboto-Condensed.ttf"), 64, 0);
+	data->font = al_load_font(GetDataFilePath(game, "fonts/Roboto-Condensed.ttf"), 58, 0);
 	data->kawese_shader = CreateShader(game, GetDataFilePath(game, "shaders/vertex.glsl"), GetDataFilePath(game, "shaders/kawese.glsl"));
 	data->ghost_shader = CreateShader(game, GetDataFilePath(game, "shaders/vertex.glsl"), GetDataFilePath(game, "shaders/ghosttree.glsl"));
 	data->dis_shader = CreateShader(game, GetDataFilePath(game, "shaders/vertex.glsl"), GetDataFilePath(game, "shaders/dis.glsl"));
