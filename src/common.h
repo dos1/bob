@@ -36,6 +36,10 @@ struct CommonResources {
 	ALLEGRO_BITMAP* displacement;
 	ALLEGRO_FONT* font;
 	ALLEGRO_COLOR tint;
+	ALLEGRO_AUDIO_STREAM* music;
+	ALLEGRO_MIXER* mixer;
+	bool in;
+	float val, chime;
 };
 
 bool IsInside(vrPolygonShape* shape, vrVec2 v);

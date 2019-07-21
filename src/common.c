@@ -23,6 +23,18 @@
 #include "common.h"
 #include <libsuperderpy.h>
 
+static unsigned long long int counter;
+
+static void MixerPostprocess(void* buffer, unsigned int samples, void* userdata) {
+	struct Game* game = userdata;
+	float* buf = buffer;
+
+	float val = fmaxf(game->data->val, game->data->chime);
+	for (unsigned int i = 0; i < samples; i++) {
+		buf[i] += sinf(fmod(counter++ / (1 + val) * 32 * game->data->tint.r, 2 * ALLEGRO_PI)) * 0.03 * fmin(2.0, val);
+	}
+}
+
 struct Entity* CreateEntity(struct Game* game, vrWorld* world, float x, float y, float w, float h, float mass, float friction, float restitution, bool gravity, int kind) {
 	vrRigidBody* body = vrBodyInit(vrBodyAlloc());
 	if (mass >= 0) {
@@ -277,6 +289,18 @@ struct CommonResources* CreateGameData(struct Game* game) {
 	data->kawese_shader = CreateShader(game, GetDataFilePath(game, "shaders/vertex.glsl"), GetDataFilePath(game, "shaders/kawese.glsl"));
 	data->ghost_shader = CreateShader(game, GetDataFilePath(game, "shaders/vertex.glsl"), GetDataFilePath(game, "shaders/ghosttree.glsl"));
 	data->dis_shader = CreateShader(game, GetDataFilePath(game, "shaders/vertex.glsl"), GetDataFilePath(game, "shaders/dis.glsl"));
+	data->music = al_load_audio_stream(GetDataFilePath(game, "music.flac"), 4, 2048);
+
+	game->data = data;
+
+	data->mixer = al_create_mixer(al_get_mixer_frequency(game->audio.music), ALLEGRO_AUDIO_DEPTH_FLOAT32, ALLEGRO_CHANNEL_CONF_2);
+	al_attach_mixer_to_mixer(data->mixer, game->audio.music);
+	al_set_mixer_postprocess_callback(data->mixer, MixerPostprocess, game);
+
+	al_set_audio_stream_playing(data->music, false);
+	al_set_audio_stream_playmode(data->music, ALLEGRO_PLAYMODE_LOOP);
+	al_attach_audio_stream_to_mixer(data->music, data->mixer);
+
 	al_set_target_bitmap(data->buffer);
 	al_clear_to_color(al_map_rgba(0, 0, 0, 0));
 	al_set_target_backbuffer(game->display);

@@ -40,6 +40,7 @@ int Gamestate_ProgressCount = 1; // number of loading steps as reported by Games
 
 static void Start(struct Game* game, struct GamestateResources* data) {
 	data->player = CreateEntity(game, data->world, 150, -150, 150, 150, 0.01, 0.0, 0.0, true, 1);
+	game->data->chime = 4.0;
 }
 
 static void Restart(struct Game* game, struct GamestateResources* data) {
@@ -118,6 +119,26 @@ void Gamestate_Tick(struct Game* game, struct GamestateResources* data) {
 	vrPolygonShape* e = ((vrShape*)(data->exit->body->shape->data[0]))->shape;
 	if (IsInside(e, p->vertices[0]) && IsInside(e, p->vertices[1]) && IsInside(e, p->vertices[2]) && IsInside(e, p->vertices[3])) {
 		Restart(game, data);
+	}
+
+	game->data->in = (data->up || data->down);
+	if (game->data->in) {
+		game->data->val += 0.05;
+		if (game->data->val > 1) {
+			game->data->val = 1;
+		}
+	} else {
+		game->data->val -= 0.05;
+		if (game->data->val < 0) {
+			game->data->val = 0;
+		}
+	}
+
+	if (game->data->chime) {
+		game->data->chime -= 0.05;
+	}
+	if (game->data->chime < 0) {
+		game->data->chime = 0;
 	}
 }
 
@@ -338,6 +359,7 @@ void Gamestate_Unload(struct Game* game, struct GamestateResources* data) {
 void Gamestate_Start(struct Game* game, struct GamestateResources* data) {
 	// Called when this gamestate gets control. Good place for initializing state,
 	// playing music etc.
+	al_set_audio_stream_playing(game->data->music, true);
 }
 
 void Gamestate_Stop(struct Game* game, struct GamestateResources* data) {
