@@ -155,7 +155,7 @@ void Gamestate_Draw(struct Game* game, struct GamestateResources* data) {
 		al_draw_filled_circle(pivot.x, pivot.y, 8, al_map_rgb(200, 200, 40));
 	}
 
-	DrawTextWithShadow(game->data->font, al_map_rgb(255, 255, 255), data->player->body->center.x + data->player->width * sqrt(2) / 2, data->player->body->center.y - 40, ALLEGRO_ALIGN_LEFT, "Bob was a square.");
+	//DrawTextWithShadow(game->data->font, al_map_rgb(255, 255, 255), data->player->body->center.x + data->player->width * sqrt(2) / 2, data->player->body->center.y - 40, ALLEGRO_ALIGN_LEFT, "Bob was a square.");
 
 	//al_draw_filled_rectangle(pivot.x - 1, pivot.y - 1, pivot.x + 1, pivot.y + 1, al_map_rgb(255, 0, 0));
 
