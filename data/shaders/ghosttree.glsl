@@ -4,6 +4,7 @@ precision highp float;
 
 const float tau = 6.28318530718;
 uniform sampler2D al_tex;
+uniform sampler2D displacement;
 varying vec2 varying_texcoord;
 varying vec4 varying_color;
 uniform vec2 tex_whole_pixel_size;
@@ -105,10 +106,14 @@ void main() {
 			0.2*sin(mod((varying_texcoord.x + t) * 10.0, tau)) * 0.05 +
 			0.2*sin(mod((varying_texcoord.x + t) * 30.0, tau)) * 0.02;
 
-		pos = clamp(1.0 * (varying_texcoord + vec2(y, x) / 16.0), 0.0, 1.0);
+		pos = clamp(1.0 * (varying_texcoord + vec2(y, x) / 8.0), 0.0, 1.0);
 	//}
 
-	vec4 color = clampTexture2D(al_tex, pos);
+	vec4 dis = clampTexture2D(displacement, pos);
+
+	pos += dis.rg / 256.0;
+
+	vec4 color = clampTexture2D(al_tex, pos) * (1.0 - dis.r * 0.2);
 
 /*	vec2 pixelsize = vec2(1.0) / tex_whole_pixel_size;
 	vec4 blur = KawaseBlurFilter(al_tex, pos, pixelsize, 2.0);
@@ -120,5 +125,7 @@ void main() {
 
 	color = vec4(vec3(color.a) - color.rgb, color.a);
 */
-	gl_FragColor = color * varying_color;
+color.b += dis.b * 0.125;
+color.g += dis.g * 0.025;
+	gl_FragColor = color * varying_color;;
 }

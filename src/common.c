@@ -117,9 +117,11 @@ void ChangeEntitySize(struct Game* game, struct Entity* entity, float scale) {
 	v4 = rescale(v4, center, scale);
 
 	if (vrDist(v1, v2) < 75) {
+		game->data->tint = al_map_rgba_f(1.0, 0.9, 0.9, 0.9);
 		return;
 	}
 	if (vrDist(v1, v2) > 300) {
+		game->data->tint = al_map_rgba_f(1.0, 0.9, 0.9, 0.9);
 		return;
 	}
 
@@ -131,10 +133,12 @@ void ChangeEntitySize(struct Game* game, struct Entity* entity, float scale) {
 				continue;
 			}
 			if (body != entity->body && (IsInside(shape, v1) || IsInside(shape, v2) || IsInside(shape, v3) || IsInside(shape, v4))) {
+				//game->data->tint = al_map_rgba_f(0.85, 0.75, 0.75, 0.75);
 				return;
 			}
 			vrVec2 c = shape->center;
 			if (body != entity->body && (IsInside(pshape, rescale(shape->vertices[0], c, 0.9)) || IsInside(pshape, rescale(shape->vertices[1], c, 0.9)) || IsInside(pshape, rescale(shape->vertices[2], c, 0.9)) || IsInside(pshape, rescale(shape->vertices[3], c, 0.9)))) {
+				//game->data->tint = al_map_rgba_f(0.85, 0.75, 0.75, 0.75);
 				return;
 			}
 			//shape->vertices[i];
@@ -204,7 +208,7 @@ void Compositor(struct Game* game) {
 
 	al_set_target_bitmap(game->data->tmp);
 	ClearToColor(game, al_map_rgba(0, 0, 0, 0));
-	al_draw_tinted_bitmap(game->data->buffer, al_map_rgba_f(0.75, 0.85, 0.85, 0.85), 0, -game->clip_rect.h * 0.0015, 0);
+	al_draw_tinted_bitmap(game->data->buffer, game->data->tint, 0, -game->clip_rect.h * 0.003, 0);
 
 	float size[2] = {al_get_bitmap_width(game->data->tmp), al_get_bitmap_height(game->data->tmp)};
 
@@ -231,6 +235,7 @@ void Compositor(struct Game* game) {
 	al_use_shader(game->data->ghost_shader);
 	al_set_shader_bool("invert", false);
 	al_set_shader_float("time", game->time);
+	al_set_shader_sampler("displacement", game->data->displacement, 1);
 	float vertices[4] = {0.0, 0.0, al_get_bitmap_width(game->data->blur2), al_get_bitmap_height(game->data->blur2)};
 	al_set_shader_float_vector("vertices", 4, vertices, 1);
 
@@ -250,7 +255,10 @@ void Compositor(struct Game* game) {
 	al_draw_tinted_scaled_bitmap(game->data->blur2, al_map_rgba_f(1, 1, 1, 1), 0, 0, size[0] / BLUR_DIVIDER, size[1] / BLUR_DIVIDER, 0, 0, size[0], size[1], 0);
 	al_use_shader(NULL);
 
+	al_use_shader(game->data->dis_shader);
+	al_set_shader_sampler("displacement", game->data->displacement, 1);
 	al_draw_bitmap(game->data->target, 0, 0, 0);
+	al_use_shader(NULL);
 	al_draw_tinted_scaled_bitmap(game->data->blur2, al_map_rgba_f(0.5, 0.5, 0.5, 0.5), 0, 0, size[0] / BLUR_DIVIDER, size[1] / BLUR_DIVIDER, 0, 0, size[0], size[1], 0);
 
 	al_set_target_backbuffer(game->display);
@@ -265,11 +273,17 @@ struct CommonResources* CreateGameData(struct Game* game) {
 	data->buffer = CreateNotPreservedBitmap(al_get_display_width(game->display), al_get_display_height(game->display));
 	data->target = CreateNotPreservedBitmap(al_get_display_width(game->display), al_get_display_height(game->display));
 	data->tmp = CreateNotPreservedBitmap(al_get_display_width(game->display), al_get_display_height(game->display));
+	data->font = al_load_font(GetDataFilePath(game, "fonts/Roboto-Condensed.ttf"), 64, 0);
 	data->kawese_shader = CreateShader(game, GetDataFilePath(game, "shaders/vertex.glsl"), GetDataFilePath(game, "shaders/kawese.glsl"));
 	data->ghost_shader = CreateShader(game, GetDataFilePath(game, "shaders/vertex.glsl"), GetDataFilePath(game, "shaders/ghosttree.glsl"));
+	data->dis_shader = CreateShader(game, GetDataFilePath(game, "shaders/vertex.glsl"), GetDataFilePath(game, "shaders/dis.glsl"));
 	al_set_target_bitmap(data->buffer);
 	al_clear_to_color(al_map_rgba(0, 0, 0, 0));
 	al_set_target_backbuffer(game->display);
+
+	data->tint = al_map_rgba_f(0.75, 0.85, 0.85, 0.85);
+
+	data->displacement = al_load_bitmap(GetDataFilePath(game, "displacement.png"));
 	return data;
 }
 

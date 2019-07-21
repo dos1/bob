@@ -32,7 +32,10 @@ struct Entity {
 struct CommonResources {
 	// Fill in with common data accessible from all gamestates.
 	ALLEGRO_BITMAP *blur1, *blur2, *buffer, *target, *tmp;
-	ALLEGRO_SHADER *kawese_shader, *ghost_shader;
+	ALLEGRO_SHADER *kawese_shader, *ghost_shader, *dis_shader;
+	ALLEGRO_BITMAP* displacement;
+	ALLEGRO_FONT* font;
+	ALLEGRO_COLOR tint;
 };
 
 bool IsInside(vrPolygonShape* shape, vrVec2 v);

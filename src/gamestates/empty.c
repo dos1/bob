@@ -54,6 +54,12 @@ void Gamestate_Logic(struct Game* game, struct GamestateResources* data, double 
 }
 void Gamestate_Tick(struct Game* game, struct GamestateResources* data) {
 	// Here you should do all your game logic as if <delta> seconds have passed.
+
+	game->data->tint = al_map_rgba_f(0.75, 0.85, 0.85, 0.85);
+	if (data->up || data->down) {
+		game->data->tint = al_map_rgba_f(0.92, 0.9, 0.92, 0.9);
+	}
+
 	if (data->down) {
 		ChangeEntitySize(game, data->player, 0.975);
 	}
@@ -148,6 +154,8 @@ void Gamestate_Draw(struct Game* game, struct GamestateResources* data) {
 		vrVec2 pivot = GetPivot(data->player);
 		al_draw_filled_circle(pivot.x, pivot.y, 8, al_map_rgb(200, 200, 40));
 	}
+
+	DrawTextWithShadow(game->data->font, al_map_rgb(255, 255, 255), data->player->body->center.x + data->player->width * sqrt(2) / 2, data->player->body->center.y - 40, ALLEGRO_ALIGN_LEFT, "Bob was a square.");
 
 	//al_draw_filled_rectangle(pivot.x - 1, pivot.y - 1, pivot.x + 1, pivot.y + 1, al_map_rgb(255, 0, 0));
 
