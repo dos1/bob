@@ -138,7 +138,7 @@ void Gamestate_Draw(struct Game* game, struct GamestateResources* data) {
 
 	DrawEntity(game, data->player);
 	if (data->up || data->down) {
-		al_draw_filled_circle(data->player->body->center.x, data->player->body->center.y, 4, al_map_rgb(10, 200, 200));
+		al_draw_filled_circle(data->player->body->center.x, data->player->body->center.y, 8, al_map_rgb(10, 200, 200));
 
 		al_draw_line(data->player->body->center.x, data->player->body->center.y,
 			data->player->body->center.x + data->player->body->velocity.x / 8.0, data->player->body->center.y + data->player->body->velocity.y / 8.0,
@@ -146,7 +146,7 @@ void Gamestate_Draw(struct Game* game, struct GamestateResources* data) {
 	}
 	if (data->up || data->down || data->w || data->a || data->s || data->d) {
 		vrVec2 pivot = GetPivot(data->player);
-		al_draw_filled_circle(pivot.x, pivot.y, 4, al_map_rgb(200, 200, 40));
+		al_draw_filled_circle(pivot.x, pivot.y, 8, al_map_rgb(200, 200, 40));
 	}
 
 	//al_draw_filled_rectangle(pivot.x - 1, pivot.y - 1, pivot.x + 1, pivot.y + 1, al_map_rgb(255, 0, 0));
@@ -205,6 +205,65 @@ void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, 
 	}
 	if ((ev->type == ALLEGRO_EVENT_KEY_UP) && (ev->keyboard.keycode == ALLEGRO_KEY_D)) {
 		data->d = false;
+	}
+
+	if (ev->type == ALLEGRO_EVENT_JOYSTICK_AXIS) {
+#ifdef ALLEGRO_WITH_XWINDOWS
+		if (ev->joystick.axis == 0) {
+			if (ev->joystick.stick == 2) {
+				ev->joystick.stick = 1;
+			} else if (ev->joystick.stick == 1) {
+				ev->joystick.stick = 2;
+			}
+		}
+		if (ev->joystick.stick == 1) {
+			ev->joystick.axis = 1 - ev->joystick.axis;
+		}
+#endif
+		if (game->config.debug.verbose) {
+			PrintConsole(game, "id0 %d stick: %d axis %d pos %f", al_get_joystick(0) == ev->joystick.id, ev->joystick.stick, ev->joystick.axis, ev->joystick.pos);
+		}
+	}
+
+	if (ev->type == ALLEGRO_EVENT_JOYSTICK_AXIS && ev->joystick.stick == 1) {
+		if (ev->joystick.axis == 1) {
+			if (ev->joystick.pos < -0.25) {
+				data->up = true;
+			} else {
+				data->up = false;
+			}
+			if (ev->joystick.pos > 0.25) {
+				data->down = true;
+			} else {
+				data->down = false;
+			}
+		}
+	}
+	if (ev->type == ALLEGRO_EVENT_JOYSTICK_AXIS && ev->joystick.stick == 0) {
+		if (ev->joystick.axis == 1) {
+			if (ev->joystick.pos < -0.25) {
+				data->w = true;
+			} else {
+				data->w = false;
+			}
+			if (ev->joystick.pos > 0.25) {
+				data->s = true;
+			} else {
+				data->s = false;
+			}
+		}
+		if (ev->joystick.axis == 0) {
+			if (ev->joystick.pos < -0.25) {
+				data->a = true;
+			} else {
+				data->a = false;
+			}
+			if (ev->joystick.pos > 0.25) {
+				data->d = true;
+			} else {
+				data->d = false;
+			}
+		}
 	}
 }
 
