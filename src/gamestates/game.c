@@ -658,6 +658,20 @@ void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, 
 	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_UP) && (ev->joystick.button == 14)) {
 		data->d = false;
 	}
+
+	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN) && (ev->joystick.button == 8)) {
+		data->down = true;
+	}
+	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_UP) && (ev->joystick.button == 8)) {
+		data->down = false;
+	}
+
+	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN) && (ev->joystick.button == 9)) {
+		data->up = true;
+	}
+	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_UP) && (ev->joystick.button == 9)) {
+		data->up = false;
+	}
 #endif
 
 	if (ev->type == ALLEGRO_EVENT_JOYSTICK_AXIS) {
