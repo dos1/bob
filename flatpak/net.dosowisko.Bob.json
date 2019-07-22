@@ -1,11 +1,11 @@
 {
-"app-id": "net.dosowisko.SuperExamples",
+"app-id": "net.dosowisko.Bob",
 "runtime": "org.freedesktop.Platform",
 "runtime-version": "18.08",
 "sdk": "org.freedesktop.Sdk",
-"command": "superexamples",
-"rename-icon": "superexamples",
-"rename-desktop-file": "superexamples.desktop",
+"command": "bob",
+"rename-icon": "bob",
+"rename-desktop-file": "bob.desktop",
 "finish-args": [
    "--socket=x11",
    "--socket=pulseaudio",
@@ -29,7 +29,7 @@
     ]
   },
   {
-    "name": "libsuperderpy-examples",
+    "name": "bob",
     "buildsystem": "cmake-ninja",
     "build-options": {
        "config-opts": ["-DCMAKE_BUILD_TYPE=RelWithDebInfo"]
