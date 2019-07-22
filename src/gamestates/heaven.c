@@ -23,6 +23,7 @@
 
 struct GamestateResources {
 	ALLEGRO_AUDIO_STREAM* stream;
+	ALLEGRO_BITMAP *shod;
 	float counter;
 };
 
@@ -34,13 +35,23 @@ void Gamestate_Logic(struct Game* game, struct GamestateResources* data, double 
 
 void Gamestate_Draw(struct Game* game, struct GamestateResources* data) {
 	ClearToColor(game, al_map_rgb(255, 255, 255));
-	if (data->counter > 2.0) {
-		al_draw_text(game->data->font, al_map_rgb(0, 0, 0), 1920 / 2.0, 1080 / 2.0, ALLEGRO_ALIGN_CENTER, "Press a button to play again.");
+	if (data->counter > 1.0) {
+		float val = (data->counter - 1.0) / 2.0;
+		if (val > 1.0) {
+			val = 1.0;
+		}
+		al_draw_tinted_bitmap(data->shod, al_map_rgba_f(val, val, val, val), 1920 / 2.0 - al_get_bitmap_width(data->shod) / 2.0, 1080-700, 0);
+	}
+	if (data->counter > 4.0) {
+		al_draw_text(game->data->font, al_map_rgb(0, 0, 0), 1920 / 2.0, 1080 - 280, ALLEGRO_ALIGN_CENTER, "You have reached enlightenment.");
+	}
+	if (data->counter > 6.0) {
+		al_draw_text(game->data->font, al_map_rgb(0, 0, 0), 1920 / 2.0, 1080 - 200, ALLEGRO_ALIGN_CENTER, "Press a button to play again.");
 	}
 }
 
 void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, ALLEGRO_EVENT* ev) {
-	if (data->counter > 2.0) {
+	if (data->counter > 6.0) {
 		if (ev->type == ALLEGRO_EVENT_KEY_DOWN || ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN) {
 			SwitchCurrentGamestate(game, "game");
 		}
@@ -54,6 +65,8 @@ void* Gamestate_Load(struct Game* game, void (*progress)(struct Game*)) {
 	al_set_audio_stream_playmode(data->stream, ALLEGRO_PLAYMODE_ONCE);
 	al_attach_audio_stream_to_mixer(data->stream, game->audio.fx);
 
+	data->shod = al_load_bitmap(GetDataFilePath(game, "shod.png"));
+
 	progress(game); // report that we progressed with the loading, so the engine can move a progress bar
 
 	return data;
@@ -61,6 +74,7 @@ void* Gamestate_Load(struct Game* game, void (*progress)(struct Game*)) {
 
 void Gamestate_Unload(struct Game* game, struct GamestateResources* data) {
 	al_destroy_audio_stream(data->stream);
+	al_destroy_bitmap(data->shod);
 	free(data);
 }
 
