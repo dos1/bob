@@ -36,13 +36,15 @@ void Gamestate_Logic(struct Game* game, struct GamestateResources* data, double 
 void Gamestate_Draw(struct Game* game, struct GamestateResources* data) {
 	ClearToColor(game, al_map_rgb(255, 255, 255));
 	if (data->counter > 2.0) {
-		al_draw_text(game->data->font, al_map_rgb(0, 0, 0), 1920 / 2, 1080 / 2, ALLEGRO_ALIGN_CENTER, "Press a button to play again.");
+		al_draw_text(game->data->font, al_map_rgb(0, 0, 0), 1920 / 2.0, 1080 / 2.0, ALLEGRO_ALIGN_CENTER, "Press a button to play again.");
 	}
 }
 
 void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, ALLEGRO_EVENT* ev) {
-	if (ev->type == ALLEGRO_EVENT_KEY_DOWN && data->counter > 2.0) {
-		SwitchCurrentGamestate(game, "game");
+	if (data->counter > 2.0) {
+		if (ev->type == ALLEGRO_EVENT_KEY_DOWN || ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN) {
+			SwitchCurrentGamestate(game, "game");
+		}
 	}
 }
 
@@ -69,6 +71,8 @@ void Gamestate_Unload(struct Game* game, struct GamestateResources* data) {
 
 void Gamestate_Start(struct Game* game, struct GamestateResources* data) {
 	al_set_audio_stream_playing(data->stream, true);
+	game->data->chime = 0;
+	game->data->val = 0;
 }
 
 void Gamestate_Stop(struct Game* game, struct GamestateResources* data) {}

@@ -28,7 +28,7 @@ static char* LABELS[][20] = {
 	{"Bob was alone.", "...or not.", "He didn't know.", "In fact, he couldn't. He was just a square.", "Unable to think, unable to feel.", "A very squary square.", "Bob was a square.", NULL},
 	{"Bob couldn't move. He was just there.", "Minding his own square business.", "Which means no business at all.", NULL},
 	{"There's one thing he could do though.", "He could grow.", NULL},
-	{"...and ungrow.", "In more sophisticated words, he could also shrink.", NULL},
+	{"...and ungrow.", "In more sophisticated words: he could also shrink.", NULL},
 	{"A little point appeared on Bob's face", "proving beyond any doubt, that this game isn't pointless.", NULL},
 	{"Some other things around appeared as well.", "He didn't care though.", "He couldn't.", NULL},
 	{"\"Where am I supposed to go?\" - thought someone.", "Someone who wasn't Bob.", "Not being a square makes thinking somewhat easier.", NULL},
@@ -140,7 +140,7 @@ static TM_ACTION(WaitForUpped) {
 
 static TM_ACTION(WaitForPosition) {
 	TM_RunningOnly;
-	return data->player->body->center.x > 1920 / 2 && data->player->body->center.y < 1080 / 2;
+	return data->player->body->center.x > 1920 * 0.75 && data->player->body->center.y < 1080 * 0.3;
 }
 
 static TM_ACTION(WaitForDowned) {
@@ -476,7 +476,7 @@ void Gamestate_Draw(struct Game* game, struct GamestateResources* data) {
 			data->player->body->center.x + data->player->body->velocity.x / 8.0, data->player->body->center.y + data->player->body->velocity.y / 8.0,
 			al_map_rgb(10, 200, 200), 2);
 	}
-	if (data->up || data->down || data->w || data->a || data->s || data->d) {
+	if ((!data->pivotlock) && (data->up || data->down || data->w || data->a || data->s || data->d)) {
 		vrVec2 pivot = GetPivot(data->player);
 		al_draw_filled_circle(pivot.x, pivot.y, 8, al_map_rgb(200, 200, 40));
 	}
@@ -496,7 +496,7 @@ void Gamestate_Draw(struct Game* game, struct GamestateResources* data) {
 
 			int width = al_get_text_width(game->data->font, txt);
 
-			if ((data->player->body->center.x + data->player->width * sqrt(2) / 2 > 1920 / 2) && (data->player->body->center.x + data->player->width * sqrt(2) / 2 + width > 1920)) {
+			if ((data->player->body->center.x + data->player->width * sqrt(2) / 2 > 1920 / 2.0) && (data->player->body->center.x + data->player->width * sqrt(2) / 2 + width > 1920)) {
 				al_draw_multiline_text(game->data->font, al_map_rgb(255, 255, 255), data->player->body->center.x - data->player->width * sqrt(2) / 2, data->player->body->center.y - 40, data->player->body->center.x - data->player->width * sqrt(2) / 2, 64, ALLEGRO_ALIGN_RIGHT, txt);
 			} else {
 				if (data->player->body->center.x + data->player->width * sqrt(2) / 2 + width > 1920) {
