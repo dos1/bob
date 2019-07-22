@@ -207,6 +207,19 @@ bool GlobalEventHandler(struct Game* game, ALLEGRO_EVENT* ev) {
 		ToggleFullscreen(game);
 	}
 
+	if (ev->type == ALLEGRO_EVENT_DISPLAY_RESIZE) {
+		al_destroy_bitmap(game->data->blur1);
+		al_destroy_bitmap(game->data->blur2);
+		al_destroy_bitmap(game->data->buffer);
+		al_destroy_bitmap(game->data->target);
+		al_destroy_bitmap(game->data->tmp);
+		game->data->blur1 = CreateNotPreservedBitmap(al_get_display_width(game->display) / BLUR_DIVIDER, al_get_display_height(game->display) / BLUR_DIVIDER);
+		game->data->blur2 = CreateNotPreservedBitmap(al_get_display_width(game->display) / BLUR_DIVIDER, al_get_display_height(game->display) / BLUR_DIVIDER);
+		game->data->buffer = CreateNotPreservedBitmap(al_get_display_width(game->display), al_get_display_height(game->display));
+		game->data->target = CreateNotPreservedBitmap(al_get_display_width(game->display), al_get_display_height(game->display));
+		game->data->tmp = CreateNotPreservedBitmap(al_get_display_width(game->display), al_get_display_height(game->display));
+	}
+
 	return false;
 }
 
