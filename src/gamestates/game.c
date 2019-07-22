@@ -199,9 +199,9 @@ static TM_ACTION(JustDied2) {
 	return true;
 }
 
-static void
-	Start(struct Game* game, struct GamestateResources* data) {
+static void Start(struct Game* game, struct GamestateResources* data) {
 	data->player = CreateEntity(game, data->world, 150, -150, 150, 150, 0.01, 0.0, 0.0, true, 1);
+	data->player->body->center = vrVect(150 + 75, -75);
 	game->data->chime = 4.0;
 }
 
@@ -216,6 +216,13 @@ static struct Entity* Rotate(float angle, struct Entity* entity) {
 	return entity;
 }
 
+static void CreateExit(struct Game* game, struct GamestateResources* data, float x, float y) {
+	data->exit = PushEntity(game, data, CreateEntity(game, data->world, x, y, 200, 200, -1, 0, 0, false, 2));
+	data->exit->body->collisionData.categoryMask = 0;
+	data->exit->body->collisionData.maskBit = 0;
+	data->exit->body->center = vrVect(x + 100, y + 100);
+}
+
 static void StartLevel(struct Game* game, struct GamestateResources* data, int level) {
 	data->level = level;
 	data->world = vrWorldInit(vrWorldAlloc());
@@ -227,14 +234,14 @@ static void StartLevel(struct Game* game, struct GamestateResources* data, int l
 
 	if (level == 0) {
 		PushEntity(game, data, CreateEntity(game, data->world, 0, 600, 1920, 50, -1, 1, 0, false, 0));
-		data->exit = PushEntity(game, data, CreateEntity(game, data->world, 1920 - 200, 600 - 200, 200, 200, -1, 0, 0, false, 2));
+		CreateExit(game, data, 1920 - 200, 600 - 200);
 	}
 
 	if (level == 1) {
 		PushEntity(game, data, CreateEntity(game, data->world, 0, 500, 800 - 10, 50, -1, 1, 0, false, 0));
 		PushEntity(game, data, CreateEntity(game, data->world, 800, 500, 400, 50, 0.005, 10, 0, false, 3));
 		PushEntity(game, data, CreateEntity(game, data->world, 1200 + 10, 500, 720 - 10, 50, -1, 1, 0, false, 0));
-		data->exit = PushEntity(game, data, CreateEntity(game, data->world, 1920 - 200, 1080 - 250, 200, 200, -1, 0, 0, false, 2));
+		CreateExit(game, data, 1920 - 200, 1080 - 250);
 		PushEntity(game, data, CreateEntity(game, data->world, 1920 - 1120, 1080 - 50, 1120, 50, -1, 1, 0, false, 0));
 	}
 
@@ -250,7 +257,7 @@ static void StartLevel(struct Game* game, struct GamestateResources* data, int l
 	data->exit = vrShapePolyInit(data->exit);
 	data->exit->shape = vrPolyBoxInit(data->exit->shape, 1920 - 250, 1080 - 250, 200, 200);
 */
-		data->exit = PushEntity(game, data, CreateEntity(game, data->world, 1920 - 250, 1080 - 250, 200, 200, -1, 0, 0, false, 2));
+		CreateExit(game, data, 1920 - 250, 1080 - 250);
 
 		//PushEntity(game, data, CreateEntity(game, data->world, 50, 60, 20, 20, -1, 9999, 0, false, 0));
 		//PushEntity(game, data, CreateEntity(game, data->world, 90, 130, 20, 20, -1, 9999, 1.5, false, 0));
@@ -268,7 +275,7 @@ static void StartLevel(struct Game* game, struct GamestateResources* data, int l
 		PushEntity(game, data, CreateEntity(game, data->world, 0, 700, 1000 - 10, 50, -1, 1, 0, false, 0));
 		PushEntity(game, data, CreateEntity(game, data->world, 1100, 1000, 400, 50, -1, 2, 2, false, 4));
 
-		data->exit = PushEntity(game, data, CreateEntity(game, data->world, 1920 - 250, 1080 - 250 - 500, 200, 200, -1, 0, 0, false, 2));
+		CreateExit(game, data, 1920 - 250, 1080 - 250 - 500);
 		PushEntity(game, data, CreateEntity(game, data->world, 1920 - 300, 1080 - 50 - 500, 300, 50, -1, 1, 0, false, 0));
 
 		PushEntity(game, data, CreateEntity(game, data->world, 1920 - 50, -200, 50, 1080 - 250 - 800 + 200 + 100 + 200 + 200, -1, 1, 0, false, 0));
@@ -295,11 +302,10 @@ static void StartLevel(struct Game* game, struct GamestateResources* data, int l
 		PushEntity(game, data, CreateEntity(game, data->world, 120 * 13, 1080 - 50 * 14, 1920 - 120 * 13, 50, -1, 1, 0, false, 0));
 		PushEntity(game, data, CreateEntity(game, data->world, 120 * 14, 1080 - 50 * 15, 1920 - 120 * 14, 50, -1, 1, 0, false, 0));
 
-		data->exit = PushEntity(game, data, CreateEntity(game, data->world, 1920 - 200, 1080 - 50 * 15 - 200, 200, 200, -1, 0, 0, false, 2));
+		CreateExit(game, data, 1920 - 200, 1080 - 50 * 15 - 200);
 	}
 
-	data->exit->body->collisionData.categoryMask = 0;
-	data->exit->body->collisionData.maskBit = 0;
+	vrWorldStep(data->world);
 }
 
 static void Restart(struct Game* game, struct GamestateResources* data) {
@@ -496,14 +502,20 @@ void Gamestate_Draw(struct Game* game, struct GamestateResources* data) {
 
 			int width = al_get_text_width(game->data->font, txt);
 
-			if ((data->player->body->center.x + data->player->width * sqrt(2) / 2 > 1920 / 2.0) && (data->player->body->center.x + data->player->width * sqrt(2) / 2 + width > 1920)) {
-				al_draw_multiline_text(game->data->font, al_map_rgb(255, 255, 255), data->player->body->center.x - data->player->width * sqrt(2) / 2, data->player->body->center.y - 40, data->player->body->center.x - data->player->width * sqrt(2) / 2, 64, ALLEGRO_ALIGN_RIGHT, txt);
+			float x = data->player->body->center.x + data->player->width * sqrt(2) / 2;
+			float y = data->player->body->center.y - 40;
+
+			x = fmin(1910, fmax(10, x));
+			y = fmin(1000, fmax(10, y));
+
+			if ((x > 1920 / 2.0) && (x + width > 1920)) {
+				x = data->player->body->center.x - data->player->width * sqrt(2) / 2;
+				al_draw_multiline_text(game->data->font, al_map_rgb(255, 255, 255), x, y, x, 64, ALLEGRO_ALIGN_RIGHT, txt);
 			} else {
-				if (data->player->body->center.x + data->player->width * sqrt(2) / 2 + width > 1920) {
-					al_draw_multiline_text(game->data->font, al_map_rgb(255, 255, 255), data->player->body->center.x + data->player->width * sqrt(2) / 2, data->player->body->center.y - 40, 1920 - (data->player->body->center.x + data->player->width * sqrt(2) / 2), 64, ALLEGRO_ALIGN_LEFT, txt);
+				if (x + width > 1920) {
+					al_draw_multiline_text(game->data->font, al_map_rgb(255, 255, 255), x, y, 1920 - x, 64, ALLEGRO_ALIGN_LEFT, txt);
 				} else {
-					DrawTextWithShadow(game->data->font, al_map_rgb(255, 255, 255), data->player->body->center.x + data->player->width * sqrt(2) / 2, data->player->body->center.y - 40, ALLEGRO_ALIGN_LEFT,
-						txt);
+					DrawTextWithShadow(game->data->font, al_map_rgb(255, 255, 255), x, y, ALLEGRO_ALIGN_LEFT, txt);
 				}
 			}
 		}
@@ -526,7 +538,7 @@ void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, 
 		// When there are no active gamestates, the engine will quit.
 	}
 
-	if ((ev->type == ALLEGRO_EVENT_KEY_DOWN) && (ev->keyboard.keycode == ALLEGRO_KEY_FULLSTOP)) {
+	if (((ev->type == ALLEGRO_EVENT_KEY_DOWN) && (ev->keyboard.keycode == ALLEGRO_KEY_FULLSTOP)) || ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN) && (ev->joystick.button == 3))) {
 		if (data->current_voice >= 0) {
 			al_set_sample_instance_playing(data->voices[data->current_voice].instance, false);
 		}
@@ -540,6 +552,10 @@ void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, 
 
 	if (data->inputlock) {
 		return;
+	}
+
+	if (((ev->type == ALLEGRO_EVENT_KEY_DOWN) && (ev->keyboard.keycode == ALLEGRO_KEY_SPACE)) || ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN) && (ev->joystick.button == 0))) {
+		Restart(game, data);
 	}
 
 	if ((ev->type == ALLEGRO_EVENT_KEY_DOWN) && (ev->keyboard.keycode == ALLEGRO_KEY_DOWN)) {
