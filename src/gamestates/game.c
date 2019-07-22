@@ -196,6 +196,20 @@ static TM_ACTION(JustDied2) {
 	return true;
 }
 
+static void DestroyPhysics(struct Game* game, struct GamestateResources* data) {
+	for (int i = 0; i < data->entity_num; i++) {
+		vrWorldRemoveBody(data->world, data->entities[i]->body);
+		free(data->entities[i]);
+	}
+	if (data->world) {
+		vrWorldDestroy(data->world);
+		data->world = NULL;
+	}
+	data->entity_num = 0;
+	data->exit = NULL;
+	data->player = NULL;
+}
+
 static void Start(struct Game* game, struct GamestateResources* data) {
 	data->player = CreateEntity(game, data->world, 150, -150, 150, 150, 0.01, 0.0, 0.0, true, 1);
 	data->player->body->center = vrVect(150 + 75, -75);
@@ -222,6 +236,9 @@ static void CreateExit(struct Game* game, struct GamestateResources* data, float
 
 static void StartLevel(struct Game* game, struct GamestateResources* data, int level) {
 	data->level = level;
+
+	DestroyPhysics(game, data);
+
 	data->world = vrWorldInit(vrWorldAlloc());
 	data->world->gravity = vrVect(0, 9.81);
 
@@ -464,6 +481,10 @@ void Gamestate_Draw(struct Game* game, struct GamestateResources* data) {
 	// Draw everything to the screen here.
 
 	ClearToColor(game, al_map_rgba(0, 0, 0, 0));
+
+	if (!data->world || !data->exit || !data->player) {
+		return;
+	}
 
 	if (data->shown) {
 		for (int i = 0; i < data->entity_num; i++) {
@@ -826,7 +847,7 @@ void Gamestate_Start(struct Game* game, struct GamestateResources* data) {
 
 void Gamestate_Stop(struct Game* game, struct GamestateResources* data) {
 	// Called when gamestate gets stopped. Stop timers, music etc. here.
-	vrWorldDestroy(data->world);
+	DestroyPhysics(game, data);
 }
 
 // Optional endpoints:
