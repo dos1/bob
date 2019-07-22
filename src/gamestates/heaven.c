@@ -50,7 +50,7 @@ void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, 
 
 void* Gamestate_Load(struct Game* game, void (*progress)(struct Game*)) {
 	struct GamestateResources* data = calloc(1, sizeof(struct GamestateResources));
-	data->stream = al_load_audio_stream(GetDataFilePath(game, "heaven.wav"), 4, 2048);
+	data->stream = al_load_audio_stream(GetDataFilePath(game, "heaven.flac"), 4, 2048);
 	al_set_audio_stream_playing(data->stream, false);
 	al_set_audio_stream_playmode(data->stream, ALLEGRO_PLAYMODE_ONCE);
 	al_attach_audio_stream_to_mixer(data->stream, game->audio.fx);
