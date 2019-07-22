@@ -347,7 +347,7 @@ static void Win(struct Game* game, struct GamestateResources* data) {
 		TM_AddAction(data->timeline, WaitForVoice, NULL);
 	}
 	if (data->level + 1 == 5) {
-		SwitchCurrentGamestate(game, "example");
+		SwitchCurrentGamestate(game, "heaven");
 	}
 	StartLevel(game, data, data->level + 1);
 }

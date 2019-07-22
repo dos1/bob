@@ -42,7 +42,7 @@ void Gamestate_Draw(struct Game* game, struct GamestateResources* data) {
 
 void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, ALLEGRO_EVENT* ev) {
 	if (ev->type == ALLEGRO_EVENT_KEY_DOWN && data->counter > 2.0) {
-		SwitchCurrentGamestate(game, "empty");
+		SwitchCurrentGamestate(game, "game");
 	}
 }
 
