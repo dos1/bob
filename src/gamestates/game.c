@@ -106,6 +106,8 @@ struct GamestateResources {
 	int level;
 	int die_counter;
 
+	bool isthisit_triggered;
+
 	struct {
 		ALLEGRO_SAMPLE* sample;
 		ALLEGRO_SAMPLE_INSTANCE* instance;
@@ -136,11 +138,6 @@ static TM_ACTION(WaitForPivoted) {
 static TM_ACTION(WaitForUpped) {
 	TM_RunningOnly;
 	return data->upped;
-}
-
-static TM_ACTION(WaitForPosition) {
-	TM_RunningOnly;
-	return data->player->body->center.x > 1920 * 0.75 && data->player->body->center.y < 1080 * 0.3;
 }
 
 static TM_ACTION(WaitForDowned) {
@@ -347,10 +344,6 @@ static void Win(struct Game* game, struct GamestateResources* data) {
 		TM_AddDelay(data->timeline, 5);
 		TM_AddAction(data->timeline, PlayNextVoice, NULL);
 		TM_AddAction(data->timeline, WaitForVoice, NULL);
-
-		TM_AddAction(data->timeline, WaitForPosition, NULL);
-		TM_AddAction(data->timeline, PlayNextVoice, NULL);
-		TM_AddAction(data->timeline, WaitForVoice, NULL);
 	}
 	if (data->level + 1 == 5) {
 		SwitchCurrentGamestate(game, "heaven");
@@ -417,14 +410,16 @@ void Gamestate_Tick(struct Game* game, struct GamestateResources* data) {
 	}
 
 	if (data->player->body->center.y > 1600) {
-		data->die_counter++;
 		Restart(game, data);
-		if (data->die_counter == 1) {
-			TM_AddAction(data->timeline, JustDied1, NULL);
-			TM_AddAction(data->timeline, WaitForVoice, NULL);
-		} else if (data->die_counter == 2) {
-			TM_AddAction(data->timeline, JustDied2, NULL);
-			TM_AddAction(data->timeline, WaitForVoice, NULL);
+		if (TM_IsEmpty(data->timeline)) {
+			data->die_counter++;
+			if (data->die_counter == 1) {
+				TM_AddAction(data->timeline, JustDied1, NULL);
+				TM_AddAction(data->timeline, WaitForVoice, NULL);
+			} else if (data->die_counter == 2) {
+				TM_AddAction(data->timeline, JustDied2, NULL);
+				TM_AddAction(data->timeline, WaitForVoice, NULL);
+			}
 		}
 	}
 
@@ -452,6 +447,16 @@ void Gamestate_Tick(struct Game* game, struct GamestateResources* data) {
 	}
 	if (game->data->chime < 0) {
 		game->data->chime = 0;
+	}
+
+	if (data->level == 4) {
+		if (!data->isthisit_triggered) {
+			if (data->player->body->center.x > 1920 * 0.75 && data->player->body->center.y < 1080 * 0.3) {
+				data->isthisit_triggered = true;
+				TM_AddAction(data->timeline, PlayNextVoice, NULL);
+				TM_AddAction(data->timeline, WaitForVoice, NULL);
+			}
+		}
 	}
 }
 
@@ -740,6 +745,7 @@ void Gamestate_Start(struct Game* game, struct GamestateResources* data) {
 	data->d = false;
 	data->up = false;
 	data->down = false;
+	data->isthisit_triggered = false;
 
 	TM_CleanQueue(data->timeline);
 	TM_AddDelay(data->timeline, 1);
