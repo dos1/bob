@@ -116,7 +116,8 @@ void Gamestate_Draw(struct Game* game, struct GamestateResources* data) {
 		int fade = data->fadeout ? 255 : (int)(data->fade);
 
 		al_set_target_bitmap(data->pixelator);
-		al_clear_to_color(al_map_rgb(35, 31, 32));
+		al_clear_to_color(al_map_rgba(0, 0, 0, 0));
+		//al_clear_to_color(al_map_rgb(35, 31, 32));
 
 		al_draw_tinted_scaled_bitmap(data->bitmap, al_map_rgba(fade, fade, fade, fade), 0, 0,
 			al_get_bitmap_width(data->bitmap), al_get_bitmap_height(data->bitmap),
@@ -130,7 +131,10 @@ void Gamestate_Draw(struct Game* game, struct GamestateResources* data) {
 
 		SetFramebufferAsTarget(game);
 
+		ClearToColor(game, al_map_rgba(0, 0, 0, 0));
 		al_draw_scaled_bitmap(data->pixelator, 0, 0, 320, 180, 0, 0, game->viewport.width, game->viewport.height, 0);
+	} else {
+		ClearToColor(game, al_map_rgba(0, 0, 0, 0));
 	}
 }
 

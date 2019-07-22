@@ -33,6 +33,7 @@ void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, 
 void Gamestate_Logic(struct Game* game, struct GamestateResources* data, double delta){};
 
 void Gamestate_Draw(struct Game* game, struct GamestateResources* data) {
+	ClearToColor(game, al_map_rgba(0, 0, 0, 0));
 	al_draw_filled_rectangle(0, game->viewport.height * 0.98, game->viewport.width, game->viewport.height, al_map_rgba(32, 32, 32, 32));
 	al_draw_filled_rectangle(0, game->viewport.height * 0.98, game->loading.progress * game->viewport.width, game->viewport.height, al_map_rgba(128, 128, 128, 128));
 };
