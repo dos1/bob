@@ -319,7 +319,17 @@ struct CommonResources* CreateGameData(struct Game* game) {
 }
 
 void DestroyGameData(struct Game* game) {
+	al_destroy_bitmap(game->data->blur1);
+	al_destroy_bitmap(game->data->blur2);
+	al_destroy_bitmap(game->data->buffer);
+	al_destroy_bitmap(game->data->target);
+	al_destroy_bitmap(game->data->tmp);
+	al_destroy_bitmap(game->data->displacement);
+	al_destroy_font(game->data->font);
 	al_destroy_audio_stream(game->data->music);
 	al_destroy_mixer(game->data->mixer);
+	DestroyShader(game, game->data->kawese_shader);
+	DestroyShader(game, game->data->ghost_shader);
+	DestroyShader(game, game->data->dis_shader);
 	free(game->data);
 }

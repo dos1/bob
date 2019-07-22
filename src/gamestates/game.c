@@ -716,9 +716,11 @@ void* Gamestate_Load(struct Game* game, void (*progress)(struct Game*)) {
 void Gamestate_Unload(struct Game* game, struct GamestateResources* data) {
 	// Called when the gamestate library is being unloaded.
 	// Good place for freeing all allocated memory and resources.
-	//vrShapeDestroy(data->shape);
-	//vrBodyDestroy(data->body);
-	vrWorldDestroy(data->world);
+	for (int i = 0; i < 17; i++) {
+		al_destroy_sample_instance(data->voices[i].instance);
+		al_destroy_sample(data->voices[i].sample);
+	}
+	TM_Destroy(data->timeline);
 	free(data);
 }
 
@@ -778,6 +780,7 @@ void Gamestate_Start(struct Game* game, struct GamestateResources* data) {
 
 void Gamestate_Stop(struct Game* game, struct GamestateResources* data) {
 	// Called when gamestate gets stopped. Stop timers, music etc. here.
+	vrWorldDestroy(data->world);
 }
 
 // Optional endpoints:

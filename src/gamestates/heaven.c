@@ -22,7 +22,6 @@
 #include <libsuperderpy.h>
 
 struct GamestateResources {
-	ALLEGRO_FONT* font;
 	ALLEGRO_AUDIO_STREAM* stream;
 	float counter;
 };
@@ -55,11 +54,7 @@ void* Gamestate_Load(struct Game* game, void (*progress)(struct Game*)) {
 	al_set_audio_stream_playmode(data->stream, ALLEGRO_PLAYMODE_ONCE);
 	al_attach_audio_stream_to_mixer(data->stream, game->audio.fx);
 
-	int flags = al_get_new_bitmap_flags();
-	al_set_new_bitmap_flags(flags & ~ALLEGRO_MAG_LINEAR); // disable linear scaling for pixelarty appearance
-	data->font = al_create_builtin_font();
 	progress(game); // report that we progressed with the loading, so the engine can move a progress bar
-	al_set_new_bitmap_flags(flags);
 
 	return data;
 }
