@@ -666,17 +666,17 @@ void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, 
 	}
 
 	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN) && (ev->joystick.button == 8)) {
-		data->down = true;
+		data->up = true;
 	}
 	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_UP) && (ev->joystick.button == 8)) {
-		data->down = false;
+		data->up = false;
 	}
 
 	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN) && (ev->joystick.button == 9)) {
-		data->up = true;
+		data->down = true;
 	}
 	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_UP) && (ev->joystick.button == 9)) {
-		data->up = false;
+		data->down = false;
 	}
 #endif
 
@@ -801,16 +801,16 @@ void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, 
 	if (ev->type == ALLEGRO_EVENT_JOYSTICK_AXIS && ev->joystick.stick == 2) {
 		if (ev->joystick.axis == 0) {
 			if (ev->joystick.pos > -1) {
-				data->down = true;
+				data->up = true;
 			} else {
-				data->down = false;
+				data->up = false;
 			}
 		}
 		if (ev->joystick.axis == 1) {
 			if (ev->joystick.pos > -1) {
-				data->up = true;
+				data->down = true;
 			} else {
-				data->up = false;
+				data->down = false;
 			}
 		}
 	}
@@ -822,6 +822,12 @@ void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, 
 			data->down = true;
 		} else if (ev->joystick.pos > 0.25) {
 			data->up = true;
+		}
+	}
+	if (ev->type == ALLEGRO_EVENT_JOYSTICK_AXIS && ev->joystick.stick == 3) {
+		data->down = false;
+		if (ev->joystick.pos > 0.25) {
+			data->down = true;
 		}
 	}
 #endif
