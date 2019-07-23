@@ -376,6 +376,10 @@ void Gamestate_Tick(struct Game* game, struct GamestateResources* data) {
 		game->data->tint = al_map_rgba_f(0.92, 0.9, 0.92, 0.9);
 	}
 
+	if (!data->player || !data->exit) {
+		return;
+	}
+
 	if (data->down) {
 		ChangeEntitySize(game, data->player, 0.975);
 	}
