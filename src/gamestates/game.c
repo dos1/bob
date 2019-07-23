@@ -568,6 +568,12 @@ void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, 
 #ifdef __SWITCH__
 	skipbtn = 11;
 #endif
+#ifdef ALLEGRO_MACOSX
+	skipbtn = 9;
+#endif
+#ifdef ALLEGRO_WINDOWS
+	skipbtn = 8;
+#endif
 
 	if (((ev->type == ALLEGRO_EVENT_KEY_DOWN) && (ev->keyboard.keycode == ALLEGRO_KEY_FULLSTOP)) || ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN) && (ev->joystick.button == skipbtn))) {
 		if (data->current_voice >= 0) {
@@ -674,6 +680,66 @@ void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, 
 	}
 #endif
 
+#ifdef ALLEGRO_MACOSX
+	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN) && (ev->joystick.button == 11)) {
+		data->w = true;
+	}
+	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_UP) && (ev->joystick.button == 11)) {
+		data->w = false;
+	}
+
+	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN) && (ev->joystick.button == 13)) {
+		data->a = true;
+	}
+	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_UP) && (ev->joystick.button == 13)) {
+		data->a = false;
+	}
+
+	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN) && (ev->joystick.button == 12)) {
+		data->s = true;
+	}
+	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_UP) && (ev->joystick.button == 12)) {
+		data->s = false;
+	}
+
+	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN) && (ev->joystick.button == 14)) {
+		data->d = true;
+	}
+	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_UP) && (ev->joystick.button == 14)) {
+		data->d = false;
+	}
+#endif
+
+#ifdef ALLEGRO_WINDOWS
+	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN) && (ev->joystick.button == 13)) {
+		data->w = true;
+	}
+	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_UP) && (ev->joystick.button == 13)) {
+		data->w = false;
+	}
+
+	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN) && (ev->joystick.button == 11)) {
+		data->a = true;
+	}
+	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_UP) && (ev->joystick.button == 11)) {
+		data->a = false;
+	}
+
+	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN) && (ev->joystick.button == 12)) {
+		data->s = true;
+	}
+	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_UP) && (ev->joystick.button == 12)) {
+		data->s = false;
+	}
+
+	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN) && (ev->joystick.button == 10)) {
+		data->d = true;
+	}
+	if ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_UP) && (ev->joystick.button == 10)) {
+		data->d = false;
+	}
+#endif
+
 	if (ev->type == ALLEGRO_EVENT_JOYSTICK_AXIS) {
 		if (game->config.debug.verbose) {
 			PrintConsole(game, "id0 %d stick: %d axis %d pos %f", al_get_joystick(0) == ev->joystick.id, ev->joystick.stick, ev->joystick.axis, ev->joystick.pos);
@@ -700,7 +766,11 @@ void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, 
 			}
 		}
 	}
+#ifdef ALLEGRO_WITH_XWINDOWS
 	if (ev->type == ALLEGRO_EVENT_JOYSTICK_AXIS && (ev->joystick.stick == 0 || ev->joystick.stick == 3)) {
+#else
+	if (ev->type == ALLEGRO_EVENT_JOYSTICK_AXIS && ev->joystick.stick == 0) {
+#endif
 		if (ev->joystick.axis == 1) {
 			if (ev->joystick.pos < -0.25) {
 				data->w = true;
@@ -727,6 +797,7 @@ void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, 
 		}
 	}
 
+#ifndef ALLEGRO_WINDOWS
 	if (ev->type == ALLEGRO_EVENT_JOYSTICK_AXIS && ev->joystick.stick == 2) {
 		if (ev->joystick.axis == 0) {
 			if (ev->joystick.pos > -1) {
@@ -743,6 +814,17 @@ void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, 
 			}
 		}
 	}
+#else
+	if (ev->type == ALLEGRO_EVENT_JOYSTICK_AXIS && ev->joystick.stick == 2) {
+		data->down = false;
+		data->up = false;
+		if (ev->joystick.pos < -0.25) {
+			data->down = true;
+		} else if (ev->joystick.pos > 0.25) {
+			data->up = true;
+		}
+	}
+#endif
 
 	if (data->growlock) {
 		if (data->up || data->down) {
