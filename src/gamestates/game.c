@@ -592,7 +592,9 @@ void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, 
 	}
 
 	if (((ev->type == ALLEGRO_EVENT_KEY_DOWN) && (ev->keyboard.keycode == ALLEGRO_KEY_BACKSPACE)) || ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN) && (ev->joystick.button == 1))) {
-		Restart(game, data);
+		if (data->shown) {
+			Restart(game, data);
+		}
 	}
 
 	if ((ev->type == ALLEGRO_EVENT_KEY_DOWN) && (ev->keyboard.keycode == ALLEGRO_KEY_DOWN)) {
