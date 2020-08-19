@@ -40,6 +40,13 @@ struct CommonResources {
 	ALLEGRO_MIXER* mixer;
 	bool in;
 	float val, chime;
+
+	struct {
+		bool enabled;
+		bool wasd, updown;
+		bool w, a, s, d;
+		bool up, down;
+	} hud;
 };
 
 bool IsInside(vrPolygonShape* shape, vrVec2 v);

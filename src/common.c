@@ -35,6 +35,41 @@ static void MixerPostprocess(void* buffer, unsigned int samples, void* userdata)
 	}
 }
 
+static void DrawHUD(struct Game* game) {
+	double x = game->clip_rect.h / 1080.0;
+	int width = al_get_display_width(game->display);
+	int height = al_get_display_height(game->display);
+	if (game->data->hud.enabled) {
+		if (game->data->hud.wasd) {
+			al_draw_filled_circle(170 * x, height - 170 * x, 150 * x, al_premul_rgba(180, 255, 255, 80));
+
+			if (game->data->hud.s) {
+				al_draw_filled_pieslice(170 * x, height - 170 * x, 150 * x, ALLEGRO_PI / 4.0, ALLEGRO_PI / 2.0, al_premul_rgba(180, 255, 255, 80));
+			}
+			if (game->data->hud.a) {
+				al_draw_filled_pieslice(170 * x, height - 170 * x, 150 * x, 3 * ALLEGRO_PI / 4.0, ALLEGRO_PI / 2.0, al_premul_rgba(180, 255, 255, 80));
+			}
+			if (game->data->hud.w) {
+				al_draw_filled_pieslice(170 * x, height - 170 * x, 150 * x, 5 * ALLEGRO_PI / 4.0, ALLEGRO_PI / 2.0, al_premul_rgba(180, 255, 255, 80));
+			}
+			if (game->data->hud.d) {
+				al_draw_filled_pieslice(170 * x, height - 170 * x, 150 * x, 7 * ALLEGRO_PI / 4.0, ALLEGRO_PI / 2.0, al_premul_rgba(180, 255, 255, 80));
+			}
+		}
+
+		if (game->data->hud.updown) {
+			al_draw_filled_rectangle(width - 170 * x, 20 * x, width - 20 * x, 200 * x, al_premul_rgba(180, 255, 255, 80));
+			al_draw_filled_rectangle(width - 170 * x, 220 * x, width - 20 * x, 400 * x, al_premul_rgba(180, 255, 255, 80));
+			if (game->data->hud.up) {
+				al_draw_filled_rectangle(width - 170 * x, 20 * x, width - 20 * x, 200 * x, al_premul_rgba(180, 255, 255, 80));
+			}
+			if (game->data->hud.down) {
+				al_draw_filled_rectangle(width - 170 * x, 220 * x, width - 20 * x, 400 * x, al_premul_rgba(180, 255, 255, 80));
+			}
+		}
+	}
+}
+
 struct Entity* CreateEntity(struct Game* game, vrWorld* world, float x, float y, float w, float h, float mass, float friction, float restitution, bool gravity, int kind) {
 	vrRigidBody* body = vrBodyInit(vrBodyAlloc());
 	if (mass >= 0) {
@@ -237,6 +272,8 @@ void Compositor(struct Game* game) {
 	if (game->loading.shown) {
 		al_draw_bitmap(GetGamestateFramebuffer(game, GetGamestate(game, NULL)), game->clip_rect.x, game->clip_rect.y, 0);
 	}
+
+	DrawHUD(game);
 
 	al_set_target_bitmap(game->data->tmp);
 	ClearToColor(game, al_map_rgba(0, 0, 0, 0));
