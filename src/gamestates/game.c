@@ -94,6 +94,7 @@ struct GamestateResources {
 	struct Entity* exit;
 	bool up, down;
 	bool w, a, s, d;
+	bool touch;
 
 	bool growlock, pivotlock, inputlock;
 	bool upped, downed, pivoted, triedtomove, shown;
@@ -551,6 +552,36 @@ void Gamestate_Draw(struct Game* game, struct GamestateResources* data) {
 		}
 	}
 
+	if (data->touch) {
+		if (!data->pivotlock) {
+			al_draw_filled_circle(170, 910, 150, al_premul_rgba(180, 255, 255, 80));
+
+			if (data->s) {
+				al_draw_filled_pieslice(170, 910, 150, ALLEGRO_PI / 4.0, ALLEGRO_PI / 2.0, al_premul_rgba(180, 255, 255, 80));
+			}
+			if (data->a) {
+				al_draw_filled_pieslice(170, 910, 150, 3 * ALLEGRO_PI / 4.0, ALLEGRO_PI / 2.0, al_premul_rgba(180, 255, 255, 80));
+			}
+			if (data->w) {
+				al_draw_filled_pieslice(170, 910, 150, 5 * ALLEGRO_PI / 4.0, ALLEGRO_PI / 2.0, al_premul_rgba(180, 255, 255, 80));
+			}
+			if (data->d) {
+				al_draw_filled_pieslice(170, 910, 150, 7 * ALLEGRO_PI / 4.0, ALLEGRO_PI / 2.0, al_premul_rgba(180, 255, 255, 80));
+			}
+		}
+
+		if (!data->growlock) {
+			al_draw_filled_rectangle(1750, 20, 1900, 200, al_premul_rgba(180, 255, 255, 80));
+			al_draw_filled_rectangle(1750, 220, 1900, 400, al_premul_rgba(180, 255, 255, 80));
+			if (data->up) {
+				al_draw_filled_rectangle(1750, 20, 1900, 200, al_premul_rgba(180, 255, 255, 80));
+			}
+			if (data->down) {
+				al_draw_filled_rectangle(1750, 220, 1900, 400, al_premul_rgba(180, 255, 255, 80));
+			}
+		}
+	}
+
 	//al_draw_filled_rectangle(pivot.x - 1, pivot.y - 1, pivot.x + 1, pivot.y + 1, al_map_rgb(255, 0, 0));
 
 	/*	DrawEntity(game, data->walls[0]);
@@ -578,6 +609,13 @@ void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, 
 #ifdef ALLEGRO_WINDOWS
 	skipbtn = 8;
 #endif
+
+	if (ev->type == ALLEGRO_EVENT_TOUCH_BEGIN) {
+		data->touch = true;
+	}
+	if ((ev->type == ALLEGRO_EVENT_KEY_DOWN) || (ev->type == ALLEGRO_EVENT_JOYSTICK_AXIS) || (ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN)) {
+		data->touch = false;
+	}
 
 	if (((ev->type == ALLEGRO_EVENT_KEY_DOWN) && (ev->keyboard.keycode == ALLEGRO_KEY_FULLSTOP)) || ((ev->type == ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN) && (ev->joystick.button == skipbtn))) {
 		if (data->current_voice >= 0) {
@@ -834,8 +872,79 @@ void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, 
 	}
 #endif
 
+	int touchX = -1, touchY = -1;
+	if (ev->type == ALLEGRO_EVENT_TOUCH_BEGIN || ev->type == ALLEGRO_EVENT_TOUCH_MOVE || ev->type == ALLEGRO_EVENT_TOUCH_END || ev->type == ALLEGRO_EVENT_TOUCH_CANCEL) {
+		touchX = ((ev->touch.x - game->clip_rect.x) / (float)game->clip_rect.w) * game->viewport.width;
+		touchY = ((ev->touch.y - game->clip_rect.y) / (float)game->clip_rect.h) * game->viewport.height;
+	}
+
+	if (ev->type == ALLEGRO_EVENT_TOUCH_BEGIN || ev->type == ALLEGRO_EVENT_TOUCH_MOVE) {
+		if (touchX < 1920 / 2) {
+			if (((ev->type == ALLEGRO_EVENT_TOUCH_MOVE) && (data->w || data->a || data->s || data->d)) || ((touchX < 340) && (touchY > 740) && (touchX > 0) && (touchY < 1080))) {
+				double x = touchX - 170, y = touchY - 910;
+				double angle = atan2(y, x);
+				PrintConsole(game, "%f", angle);
+
+				if ((angle > -ALLEGRO_PI / 4.0 - 0.333) && (angle < ALLEGRO_PI / 4.0 + 0.333)) {
+					data->d = true;
+				} else {
+					data->d = false;
+				}
+
+				if ((angle > ALLEGRO_PI / 4.0 - 0.333) && (angle < 3 * ALLEGRO_PI / 4.0 + 0.333)) {
+					data->s = true;
+				} else {
+					data->s = false;
+				}
+
+				if ((angle > 3 * ALLEGRO_PI / 4.0 - 0.333) || (angle < -3 * ALLEGRO_PI / 4.0 + 0.333)) {
+					data->a = true;
+				} else {
+					data->a = false;
+				}
+
+				if ((angle > -3 * ALLEGRO_PI / 4.0 - 0.333) && (angle < -ALLEGRO_PI / 4.0 + 0.333)) {
+					data->w = true;
+				} else {
+					data->w = false;
+				}
+
+			} else {
+				data->w = false;
+				data->a = false;
+				data->s = false;
+				data->d = false;
+			}
+		} else {
+			if ((touchX > 1730) && (touchY < 420) && (touchX < 1920) && (touchY > 0)) {
+				if (touchY < 190) {
+					data->up = true;
+					data->down = false;
+				} else {
+					data->up = false;
+					data->down = true;
+				}
+			} else {
+				data->up = false;
+				data->down = false;
+			}
+		}
+	}
+
+	if (ev->type == ALLEGRO_EVENT_TOUCH_END || ev->type == ALLEGRO_EVENT_TOUCH_CANCEL) {
+		if (touchX < 1920 / 2) {
+			data->w = false;
+			data->a = false;
+			data->s = false;
+			data->d = false;
+		} else {
+			data->up = false;
+			data->down = false;
+		}
+	}
+
 	if (data->growlock) {
-		if (data->up || data->down) {
+		if (data->up || data->down || ev->type == ALLEGRO_EVENT_TOUCH_BEGIN) {
 			data->triedtomove = true;
 		}
 		data->up = false;
