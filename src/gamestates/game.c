@@ -772,11 +772,7 @@ void Gamestate_ProcessEvent(struct Game* game, struct GamestateResources* data, 
 			}
 		}
 	}
-#ifdef ALLEGRO_WITH_XWINDOWS
-	if (ev->type == ALLEGRO_EVENT_JOYSTICK_AXIS && (ev->joystick.stick == 0 || ev->joystick.stick == 3)) {
-#else
 	if (ev->type == ALLEGRO_EVENT_JOYSTICK_AXIS && ev->joystick.stick == 0) {
-#endif
 		if (ev->joystick.axis == 1) {
 			if (ev->joystick.pos < -0.25) {
 				data->w = true;
