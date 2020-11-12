@@ -7,3 +7,4 @@ Comment=Bob is a square.
 Icon=bob
 Terminal=false
 Categories=Game;ArcadeGame;
+X-Purism-FormFactor=Workstation;Mobile;
