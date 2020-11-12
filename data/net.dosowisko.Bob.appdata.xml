@@ -5,11 +5,12 @@
   <metadata_license>FSFAP</metadata_license>
   <project_license>GPL-3.0+</project_license>
   <name>Bob</name>
-  <summary>Bob is a square.</summary>
+  <summary>Bob is a square</summary>
 
   <description>
     <p>
-      Bob is just a square.
+      Short platform game where you can't move - you can only
+      grow. And shrink. And you're just a square.
     </p>
   </description>
 
